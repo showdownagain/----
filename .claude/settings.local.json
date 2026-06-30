@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(try { $r = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -TimeoutSec 5; $r | ConvertTo-Json -Depth 5 } catch { Write-Host \"后端未启动或无法连接: $_\" })",
+      "PowerShell($venvPython = \"C:\\\\Users\\\\dd\\\\Desktop\\\\看盘工具\\\\backend\\\\.venv\\\\Scripts\\\\python.exe\"; Write-Host \"Python venv exists: $\\(Test-Path $venvPython\\)\"; Write-Host \"Python version:\"; & $venvPython --version 2>&1; Write-Host \"\"; Write-Host \"Checking if MT5 Terminal process is running...\"; $mt5 = Get-Process -Name \"terminal64\" -ErrorAction SilentlyContinue; if \\($mt5\\) { Write-Host \"MT5 Terminal: RUNNING \\(PID: $\\($mt5.Id\\)\\)\" } else { Write-Host \"MT5 Terminal: NOT RUNNING\" })",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\dd\\\\Desktop\\\\看盘工具\\\\backend\"; $env:PYTHONPATH = \"C:\\\\Users\\\\dd\\\\Desktop\\\\看盘工具\\\\backend\"; & \".\\\\.venv\\\\Scripts\\\\python.exe\" \"run.py\" --host 127.0.0.1 --port 8000)",
+      "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/health\" -TimeoutSec 5; Write-Host \"=== 后端已启动 ===\"; Write-Host \"MT5 连接: $\\($r.data.mt5_connected\\)\"; Write-Host \"Tick同步: $\\($r.data.tick_sync_running\\)\"; Write-Host \"今日Tick数: $\\($r.data.tick_count_today\\)\"; Write-Host \"最新Tick时间: $\\($r.data.last_tick_time\\)\"; Write-Host \"MT5账户: $\\($r.data.mt5_account\\)\"; Write-Host \"MT5服务器: $\\($r.data.mt5_server\\)\"; Write-Host \"运行时间: $\\($r.data.uptime_seconds\\)秒\" } catch { Write-Host \"后端仍在启动中或失败: $_\" })",
+      "PowerShell(try { $r = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/rates/XAUUSD?timeframe=M5&count=260\" -TimeoutSec 10; Write-Host \"status: $\\($r.status\\)\"; Write-Host \"symbol: $\\($r.data.symbol\\)\"; Write-Host \"timeframe: $\\($r.data.timeframe\\)\"; Write-Host \"count: $\\($r.data.count\\)\"; if \\($r.data.rates.Count -gt 0\\) { Write-Host \"First candle: $\\($r.data.rates[0].time\\)\"; Write-Host \"Last candle: $\\($r.data.rates[-1].time\\)\"; Write-Host \"Sample: open=$\\($r.data.rates[0].open\\) high=$\\($r.data.rates[0].high\\) low=$\\($r.data.rates[0].low\\) close=$\\($r.data.rates[0].close\\)\" } else { Write-Host \"rates array is EMPTY!\" } } catch { Write-Host \"API调用失败: $_\" })",
+      "PowerShell(try { $r = Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/rates/XAUUSD?timeframe=M5&count=260\" -TimeoutSec 10; $r | ConvertTo-Json -Depth 5 } catch { Write-Host \"Error: $_\" })",
+      "PowerShell(Get-Process *)"
+    ]
+  }
+}

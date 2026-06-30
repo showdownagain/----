@@ -1,0 +1,223 @@
+2026-06-30 22:55:21,592 [INFO] app.main: ==================================================
+2026-06-30 22:55:21,592 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 22:55:21,672 [INFO] app.main: Database initialized
+2026-06-30 22:55:21,685 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 22:55:21,686 [INFO] app.main: MT5 connected successfully
+2026-06-30 22:55:21,686 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-06-30 22:55:21,701 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 22:55:21,701 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 22:55:21,702 [INFO] app.main: ==================================================
+2026-06-30 22:55:58,694 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-06-30 22:55:58,717 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-06-30 23:06:12,530 [INFO] app.main: ==================================================
+2026-06-30 23:06:12,531 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 23:06:12,563 [INFO] app.main: Database initialized
+2026-06-30 23:06:12,577 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 23:06:12,577 [INFO] app.main: MT5 connected successfully
+2026-06-30 23:06:12,577 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-06-30 23:06:12,595 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 23:06:12,596 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 23:06:12,596 [INFO] app.main: ==================================================
+2026-06-30 23:12:21,247 [INFO] app.main: ==================================================
+2026-06-30 23:12:21,248 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 23:12:21,278 [INFO] app.main: Database initialized
+2026-06-30 23:12:21,291 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 23:12:21,291 [INFO] app.main: MT5 connected successfully
+2026-06-30 23:12:21,291 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD.c', 'EURUSD.c', 'GBPUSD.c', 'USDJPY.c'], interval=500ms
+2026-06-30 23:12:21,306 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 23:12:21,306 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 23:12:21,306 [INFO] app.main: ==================================================
+2026-06-30 23:12:54,889 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD.c (total: 1)
+2026-06-30 23:12:54,923 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-06-30 23:16:25,431 [INFO] app.main: ==================================================
+2026-06-30 23:16:25,431 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 23:16:25,469 [INFO] app.main: Database initialized
+2026-06-30 23:16:25,483 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 23:16:25,483 [INFO] app.main: MT5 connected successfully
+2026-06-30 23:16:25,484 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-06-30 23:16:25,503 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 23:16:25,503 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 23:16:25,503 [INFO] app.main: ==================================================
+2026-06-30 23:16:25,508 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-06-30 23:16:25,513 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-06-30 23:16:25,519 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-06-30 23:16:25,524 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-06-30 23:18:21,104 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-06-30 23:18:21,123 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-06-30 23:27:18,217 [INFO] app.main: ==================================================
+2026-06-30 23:27:18,217 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 23:27:18,245 [INFO] app.main: Database initialized
+2026-06-30 23:27:18,256 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 23:27:18,256 [INFO] app.main: MT5 connected successfully
+2026-06-30 23:27:18,256 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-06-30 23:27:18,274 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 23:27:18,274 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 23:27:18,277 [INFO] app.main: ==================================================
+2026-06-30 23:27:18,283 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-06-30 23:27:18,289 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-06-30 23:27:18,293 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-06-30 23:27:18,300 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-06-30 23:53:48,822 [INFO] app.main: ==================================================
+2026-06-30 23:53:48,822 [INFO] app.main: MT5 Trading System starting...
+2026-06-30 23:53:48,878 [INFO] app.main: Database initialized
+2026-06-30 23:53:48,895 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-06-30 23:53:48,896 [INFO] app.main: MT5 connected successfully
+2026-06-30 23:53:48,897 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-06-30 23:53:48,925 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-06-30 23:53:48,926 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-06-30 23:53:48,926 [INFO] app.main: ==================================================
+2026-06-30 23:53:48,944 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-06-30 23:53:48,963 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-06-30 23:53:48,982 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-06-30 23:53:48,987 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-06-30 23:54:56,471 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-06-30 23:54:56,489 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:00:32,974 [INFO] app.main: ==================================================
+2026-07-01 00:00:32,974 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:00:33,029 [INFO] app.main: Database initialized
+2026-07-01 00:00:33,048 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:00:33,049 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:00:33,049 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:00:33,071 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:00:33,071 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:00:33,071 [INFO] app.main: ==================================================
+2026-07-01 00:00:33,084 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:00:33,090 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:00:33,095 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:00:33,100 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:01:50,696 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:01:50,722 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:08:18,642 [INFO] app.main: ==================================================
+2026-07-01 00:08:18,643 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:08:18,680 [INFO] app.main: Database initialized
+2026-07-01 00:08:18,695 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:08:18,695 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:08:18,695 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:08:18,717 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:08:18,717 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:08:18,718 [INFO] app.main: ==================================================
+2026-07-01 00:08:18,732 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:08:18,737 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:08:18,742 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:08:18,745 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:09:29,519 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:09:29,539 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:12:09,486 [INFO] app.main: ==================================================
+2026-07-01 00:12:09,486 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:12:09,536 [INFO] app.main: Database initialized
+2026-07-01 00:12:09,557 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:12:09,557 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:12:09,557 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:12:09,579 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:12:09,579 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:12:09,579 [INFO] app.main: ==================================================
+2026-07-01 00:12:09,594 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:12:09,599 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:12:09,602 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:12:09,605 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:13:43,109 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:13:43,138 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:16:41,323 [INFO] app.main: ==================================================
+2026-07-01 00:16:41,323 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:16:41,372 [INFO] app.main: Database initialized
+2026-07-01 00:16:41,385 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:16:41,385 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:16:41,385 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:16:41,403 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:16:41,403 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:16:41,403 [INFO] app.main: ==================================================
+2026-07-01 00:16:41,418 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:16:41,422 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:16:41,425 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:16:41,428 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:17:10,260 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:17:10,284 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:21:25,126 [INFO] app.main: ==================================================
+2026-07-01 00:21:25,126 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:21:25,163 [INFO] app.main: Database initialized
+2026-07-01 00:21:25,176 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:21:25,177 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:21:25,177 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:21:25,196 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:21:25,196 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:21:25,196 [INFO] app.main: ==================================================
+2026-07-01 00:21:25,216 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:21:25,221 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:21:25,229 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:21:25,234 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:22:03,277 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:22:03,297 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:26:58,451 [INFO] app.main: ==================================================
+2026-07-01 00:26:58,451 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:26:58,502 [INFO] app.main: Database initialized
+2026-07-01 00:26:58,515 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:26:58,515 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:26:58,516 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:26:58,536 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:26:58,536 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:26:58,536 [INFO] app.main: ==================================================
+2026-07-01 00:26:58,556 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:26:58,563 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:26:58,568 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:26:58,573 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:28:58,267 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:28:58,290 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:31:44,843 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:31:44,845 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:31:45,565 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:31:45,599 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:33:20,906 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:33:20,906 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:33:21,634 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:33:21,653 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:37:00,256 [INFO] app.main: ==================================================
+2026-07-01 00:37:00,256 [INFO] app.main: MT5 Trading System starting...
+2026-07-01 00:37:00,305 [INFO] app.main: Database initialized
+2026-07-01 00:37:00,318 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live
+2026-07-01 00:37:00,319 [INFO] app.main: MT5 connected successfully
+2026-07-01 00:37:00,319 [INFO] app.services.tick_sync: Tick sync started — symbols=['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY'], interval=500ms
+2026-07-01 00:37:00,336 [INFO] app.main: MT5 Trading System ready — http://127.0.0.1:8000
+2026-07-01 00:37:00,336 [INFO] app.main: API docs — http://127.0.0.1:8000/docs
+2026-07-01 00:37:00,336 [INFO] app.main: ==================================================
+2026-07-01 00:37:00,350 [INFO] app.mt5_client: Symbol resolved: XAUUSD -> XAUUSD.c
+2026-07-01 00:37:00,364 [INFO] app.mt5_client: Symbol resolved: EURUSD -> EURUSD.c
+2026-07-01 00:37:00,366 [INFO] app.mt5_client: Symbol resolved: GBPUSD -> GBPUSD.c
+2026-07-01 00:37:00,374 [INFO] app.mt5_client: Symbol resolved: USDJPY -> USDJPY.c
+2026-07-01 00:37:18,321 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:37:18,346 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:38:46,686 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:38:46,691 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:38:47,415 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:38:47,454 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:40:27,984 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:40:27,984 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:40:28,615 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:40:28,635 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:41:17,870 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:41:17,871 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:41:18,325 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:41:18,336 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:43:22,593 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:43:22,594 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:43:23,033 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:43:23,054 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:46:44,374 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:46:44,375 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:46:45,004 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:46:45,031 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:47:52,100 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:47:52,101 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:47:52,711 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:47:52,729 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:48:35,459 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:48:35,460 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:48:35,905 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:48:35,926 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:50:18,730 [INFO] app.services.websocket_manager: WS tick disconnected: XAUUSD
+2026-07-01 00:50:18,731 [INFO] app.services.websocket_manager: WS events disconnected
+2026-07-01 00:50:19,370 [INFO] app.services.websocket_manager: WS tick connected: XAUUSD (total: 1)
+2026-07-01 00:50:19,405 [INFO] app.services.websocket_manager: WS events connected (total: 1)
+2026-07-01 00:51:22,534 [WARNING] app.services.tick_sync: MT5 disconnected, attempting reconnect...
+2026-07-01 00:51:22,534 [INFO] app.mt5_client: MT5 reconnecting...
+2026-07-01 00:51:22,534 [INFO] app.mt5_client: MT5 shutdown
+2026-07-01 00:51:28,725 [INFO] app.mt5_client: MT5 connected — account=602069, server=CGTrade-Live

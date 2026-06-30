@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MT5 Trading Dashboard — XAUUSD</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+/* ===== CSS Variables / Design Tokens ===== */
+:root {
+  --bg-primary: #131820;
+  --bg-secondary: #1c2030;
+  --bg-tertiary: #242838;
+  --bg-hover: #2a3040;
+  --border: #2a3040;
+  --border-light: #363c4e;
+  --text-primary: #d1d4dc;
+  --text-secondary: #787b86;
+  --text-bright: #f0f0f0;
+  --text-white: #ffffff;
+  --green: #00b87a;
+  --green-bg: rgba(0,184,122,0.12);
+  --red: #ef5350;
+  --red-bg: rgba(239,83,80,0.12);
+  --blue: #2962ff;
+  --blue-bg: rgba(41,98,255,0.10);
+  --warning: #ffa726;
+  --warning-bg: rgba(255,167,38,0.12);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Consolas", "Monaco", monospace;
+  --font-data: "DIN Alternate", "SF Mono", "Cascadia Code", "Consolas", monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --gap-xs: 8px;
+  --gap-sm: 12px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== App Shell ===== */
+#app {
+  display: grid;
+  grid-template-rows: 48px 1fr 280px;
+  grid-template-columns: 1fr 340px;
+  grid-template-areas:
+    "topbar topbar"
+    "chart  aside"
+    "bottom bottom";
+  height: 100vh;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* ===== Top Status Bar ===== */
+#topbar {
+  grid-area: topbar;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--gap-lg);
+  gap: var(--gap-lg);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.topbar-brand {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-white);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-brand .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(0,184,122,0.5);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-light);
+}
+
+.topbar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.topbar-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.topbar-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.topbar-value.green { color: var(--green); }
+
+.topbar-spacer { flex: 1; }
+
+.topbar-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.topbar-actions {
+  display: flex;
+  gap: var(--gap-xs);
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-icon.active {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+/* ===== Chart Area ===== */
+#chart-area {
+  grid-area: chart;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chart-symbol {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-white);
+  margin-right: 8px;
+}
+
+.chart-price {
+  font-family: var(--font-data);
+  font-size: 18px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.chart-price.up { color: var(--green); }
+.chart-price.down { color: var(--red); }
+
+.chart-change {
+  font-family: var(--font-data);
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.chart-change.up { color: var(--green); background: var(--green-bg); }
+.chart-change.down { color: var(--red); background: var(--red-bg); }
+
+.tf-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  transition: all 0.15s;
+}
+
+.tf-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+.tf-btn.active {
+  color: var(--text-white);
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.chart-container > div {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Right Aside Panel ===== */
+#aside {
+  grid-area: aside;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+/* ===== Account Panel ===== */
+#account-panel {
+  background: var(--bg-secondary);
+  padding: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  margin-left: 12px;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-sm);
+}
+
+.account-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-item.full { grid-column: 1 / -1; }
+
+.account-item .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.account-item .value {
+  font-family: var(--font-data);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.account-item .value.large {
+  font-size: 20px;
+  color: var(--text-white);
+}
+
+.account-item .value.green { color: var(--green); }
+.account-item .value.red { color: var(--red); }
+
+.account-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.account-bar-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ===== Positions Panel ===== */
+#positions-panel {
+  background: var(--bg-secondary);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.positions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gap-md) var(--gap-md) var(--gap-sm);
+}
+
+.positions-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.positions-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--gap-md) var(--gap-md);
+}
+
+.positions-table-wrap::-webkit-scrollbar { width: 4px; }
+.positions-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.positions-table-wrap::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+table.positions {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.positions th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+}
+
+table.positions td {
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: var(--font-data);
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(42,48,64,0.5);
+}
+
+table.positions tr:hover td {
+  background: var(--bg-hover);
+}
+
+table.positions .dir-buy { color: var(--green); }
+table.positions .dir-sell { color: var(--red); }
+table.positions .pnl-pos { color: var(--green); }
+table.positions .pnl-neg { color: var(--red); }
+
+.position-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+.position-badge.buy { color: var(--green); background: var(--green-bg); }
+.position-badge.sell { color: var(--red); background: var(--red-bg); }
+
+/* ===== Bottom Panel ===== */
+#bottom {
+  grid-area: bottom;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bottom-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--gap-lg);
+  flex-shrink: 0;
+}
+
+.bottom-tab {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+
+.bottom-tab:hover { color: var(--text-primary); }
+
+.bottom-tab.active {
+  color: var(--text-white);
+  border-bottom-color: var(--blue);
+}
+
+#strategy-panel .bottom-tab[data-tab="signals"].active { border-bottom-color: var(--warning); }
+#strategy-panel .bottom-tab[data-tab="orders"].active { border-bottom-color: var(--blue); }
+#strategy-panel .bottom-tab[data-tab="alerts"].active { border-bottom-color: var(--red); }
+
+.bottom-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--gap-md) var(--gap-lg);
+  display: none;
+}
+
+.bottom-content::-webkit-scrollbar { width: 4px; }
+.bottom-content::-webkit-scrollbar-track { background: transparent; }
+.bottom-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+.bottom-content.active { display: block; }
+
+/* ===== Strategy Cards ===== */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap-md);
+}
+
+.strategy-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.strategy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.strategy-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.strategy-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.strategy-status.running { background: var(--green); box-shadow: 0 0 6px rgba(0,184,122,0.5); }
+.strategy-status.stopped { background: var(--text-secondary); }
+
+.strategy-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: var(--gap-md);
+}
+
+.strategy-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: var(--font-data);
+}
+
+.strategy-signal.buy { color: var(--green); background: var(--green-bg); }
+.strategy-signal.sell { color: var(--red); background: var(--red-bg); }
+.strategy-signal.hold { color: var(--text-secondary); background: var(--bg-hover); }
+
+.strategy-params {
+  display: flex;
+  gap: var(--gap-md);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.strategy-params span { color: var(--text-primary); }
+
+.btn-sm {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+
+.btn-sm:hover { background: var(--bg-hover); }
+.btn-sm.start { border-color: var(--green); color: var(--green); }
+.btn-sm.start:hover { background: var(--green-bg); }
+.btn-sm.stop { border-color: var(--red); color: var(--red); }
+.btn-sm.stop:hover { background: var(--red-bg); }
+
+/* ===== Signals Table ===== */
+table.signals {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.signals th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.signals td {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(42,48,64,0.5);
+  font-family: var(--font-data);
+}
+
+table.signals .signal-cell {
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+table.signals .signal-cell.buy { color: var(--green); }
+table.signals .signal-cell.sell { color: var(--red); }
+
+table.signals .reason-cell {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confidence-bar {
+  display: inline-block;
+  height: 3px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* ===== Alerts ===== */
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border);
+}
+
+.alert-item.info { border-left-color: var(--blue); }
+.alert-item.warn { border-left-color: var(--warning); }
+.alert-item.error { border-left-color: var(--red); }
+.alert-item.success { border-left-color: var(--green); }
+
+.alert-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.alert-msg {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.alert-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* ===== Emergency Stop Button ===== */
+.emergency-stop {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+.btn-emergency {
+  padding: 12px 24px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 16px rgba(239,83,80,0.4);
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+
+.btn-emergency:hover {
+  background: #ff6b6b;
+  box-shadow: 0 6px 24px rgba(239,83,80,0.6);
+  transform: translateY(-1px);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 48px 400px auto 280px;
+    grid-template-areas:
+      "topbar"
+      "chart"
+      "aside"
+      "bottom";
+    overflow-y: auto;
+  }
+
+  #aside {
+    flex-direction: row;
+    max-height: 320px;
+  }
+
+  #account-panel, #positions-panel {
+    flex: 1;
+  }
+
+  .strategy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Top Status Bar ===== -->
+  <div id="topbar">
+    <div class="topbar-brand">
+      <span class="dot"></span>
+      <span>MT5 Trading</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">账户</span>
+      <span class="topbar-value">88609174</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">服务器</span>
+      <span class="topbar-value green">ICMarkets-Demo</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">连接</span>
+      <span class="topbar-value green" id="conn-status">● 已连接</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">延迟</span>
+      <span class="topbar-value" id="latency">12ms</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-time" id="clock">2026-06-30 15:30:00</div>
+    <div class="topbar-actions">
+      <button class="btn-icon" title="刷新" onclick="refreshData()">⟳</button>
+      <button class="btn-icon" title="设置">⚙</button>
+    </div>
+  </div>
+
+  <!-- ===== Chart Area ===== -->
+  <div id="chart-area">
+    <div class="chart-toolbar">
+      <span class="chart-symbol">XAUUSD</span>
+      <span class="chart-price up" id="current-price">2,350.12</span>
+      <span class="chart-change up" id="current-change">+12.45 (+0.53%)</span>
+      <span style="flex:1"></span>
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn" data-tf="5m">5m</button>
+      <button class="tf-btn active" data-tf="15m">15m</button>
+      <button class="tf-btn" data-tf="1h">1H</button>
+      <button class="tf-btn" data-tf="4h">4H</button>
+      <button class="tf-btn" data-tf="D">日</button>
+    </div>
+    <div class="chart-container">
+      <div id="chart"></div>
+    </div>
+  </div>
+
+  <!-- ===== Right Aside ===== -->
+  <div id="aside">
+
+    <!-- Account Panel -->
+    <div id="account-panel">
+      <div class="panel-title">账户概况<span style="font-weight:400;font-size:11px;color:var(--text-secondary)">Demo</span></div>
+      <div class="account-grid">
+        <div class="account-item">
+          <span class="label">余额</span>
+          <span class="value large">$10,245.80</span>
+        </div>
+        <div class="account-item">
+          <span class="label">净值</span>
+          <span class="value large green">$10,378.25</span>
+        </div>
+        <div class="account-item">
+          <span class="label">已用保证金</span>
+          <span class="value">$512.30</span>
+        </div>
+        <div class="account-item">
+          <span class="label">可用保证金</span>
+          <span class="value green">$9,865.95</span>
+        </div>
+        <div class="account-item">
+          <span class="label">保证金水平</span>
+          <span class="value">2,025.48%</span>
+        </div>
+        <div class="account-item">
+          <span class="label">浮动盈亏</span>
+          <span class="value green">+$132.45</span>
+        </div>
+        <div class="account-bar">
+          <div class="account-bar-fill" style="width:4.94%"></div>
+        </div>
+        <span style="font-size:10px;color:var(--text-secondary);grid-column:1/-1;">保证金占用 4.94% · 安全</span>
+      </div>
+    </div>
+
+    <!-- Positions Panel -->
+    <div id="positions-panel">
+      <div class="positions-header">
+        <div class="panel-title" style="margin-bottom:0">当前持仓</div>
+        <span class="positions-count">2 个持仓</span>
+      </div>
+      <div class="positions-table-wrap">
+        <table class="positions">
+          <thead>
+            <tr>
+              <th>品种</th>
+              <th>方向</th>
+              <th>手数</th>
+              <th>开仓价</th>
+              <th>当前价</th>
+              <th>盈亏</th>
+            </tr>
+          </thead>
+          <tbody id="positions-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Bottom Panel ===== -->
+  <div id="bottom">
+    <div class="bottom-tabs" id="bottom-tabs">
+      <button class="bottom-tab active" data-tab="signals" onclick="switchTab('signals')">策略信号</button>
+      <button class="bottom-tab" data-tab="strategies" onclick="switchTab('strategies')">策略引擎</button>
+      <button class="bottom-tab" data-tab="orders" onclick="switchTab('orders')">订单记录</button>
+      <button class="bottom-tab" data-tab="alerts" onclick="switchTab('alerts')">告警日志</button>
+    </div>
+
+    <!-- Signals Tab -->
+    <div class="bottom-content active" id="tab-signals">
+      <table class="signals">
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>品种</th>
+            <th>周期</th>
+            <th>策略</th>
+            <th>信号</th>
+            <th>价格</th>
+            <th>置信度</th>
+            <th>原因</th>
+          </tr>
+        </thead>
+        <tbody id="signals-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Strategies Tab -->
+    <div class="bottom-content" id="tab-strategies">
+      <div class="strategy-grid" id="strategy-grid"></div>
+    </div>
+
+    <!-- Orders Tab -->
+    <div class="bottom-content" id="tab-orders">
+      <table class="signals">
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>品种</th>
+            <th>类型</th>
+            <th>手数</th>
+            <th>价格</th>
+            <th>SL</th>
+            <th>TP</th>
+            <th>状态</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Alerts Tab -->
+    <div class="bottom-content" id="tab-alerts">
+      <div class="alerts-list" id="alerts-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Emergency Stop -->
+<div class="emergency-stop">
+  <button class="btn-emergency" onclick="emergencyStop()" title="立即停止所有策略和自动交易">⏹ 一键停止</button>
+</div>
+
+<script>
+// ===== Mock Data =====
+const BASE_PRICE = 2350.12;
+
+function generateCandleData(count = 200) {
+  const data = [];
+  let time = new Date('2026-06-29T00:00:00');
+  let close = 2320;
+  for (let i = 0; i < count; i++) {
+    const open = close + (Math.random() - 0.5) * 5;
+    const high = Math.max(open, close) + Math.random() * 8;
+    const low = Math.min(open, close) - Math.random() * 8;
+    close = low + Math.random() * (high - low);
+    data.push({
+      time: (time.getTime() / 1000),
+      open: +open.toFixed(2),
+      high: +high.toFixed(2),
+      low: +low.toFixed(2),
+      close: +close.toFixed(2),
+    });
+    time = new Date(time.getTime() + 15 * 60 * 1000); // 15min candles
+  }
+  // Set last close to current price
+  const last = data[data.length - 1];
+  last.close = BASE_PRICE;
+  last.high = Math.max(last.high, BASE_PRICE + 2);
+  data[data.length - 1] = last;
+  return data;
+}
+
+function calcMA(data, period) {
+  const result = [];
+  for (let i = period - 1; i < data.length; i++) {
+    let sum = 0;
+    for (let j = 0; j < period; j++) sum += data[i - j].close;
+    result.push({ time: data[i].time, value: +(sum / period).toFixed(2) });
+  }
+  return result;
+}
+
+const candleData = generateCandleData(200);
+const ma20Data = calcMA(candleData, 20);
+const ma60Data = calcMA(candleData, 60);
+
+// ===== Lightweight Charts Init =====
+const chartEl = document.getElementById('chart');
+const chart = LightweightCharts.createChart(chartEl, {
+  layout: {
+    background: { type: 'solid', color: '#131820' },
+    textColor: '#787b86',
+    fontSize: 12,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif',
+  },
+  grid: {
+    vertLines: { color: 'rgba(42,48,64,0.6)' },
+    horzLines: { color: 'rgba(42,48,64,0.6)' },
+  },
+  crosshair: {
+    mode: LightweightCharts.CrosshairMode.Normal,
+    vertLine: { color: '#787b86', style: 3, width: 1, labelBackgroundColor: '#787b86' },
+    horzLine: { color: '#787b86', style: 3, width: 1, labelBackgroundColor: '#787b86' },
+  },
+  rightPriceScale: {
+    borderColor: '#2a3040',
+    scaleMargins: { top: 0.1, bottom: 0.2 },
+  },
+  timeScale: {
+    borderColor: '#2a3040',
+    timeVisible: true,
+    secondsVisible: false,
+  },
+  handleScroll: { vertTouchDrag: false },
+});
+
+const candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+  upColor: '#00b87a',
+  downColor: '#ef5350',
+  borderDownColor: '#ef5350',
+  borderUpColor: '#00b87a',
+  wickDownColor: '#ef5350',
+  wickUpColor: '#00b87a',
+});
+
+candleSeries.setData(candleData);
+
+const ma20Series = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#ffa726',
+  lineWidth: 1.5,
+  priceLineVisible: false,
+  lastValueVisible: true,
+});
+ma20Series.setData(ma20Data);
+
+const ma60Series = chart.addSeries(LightweightCharts.LineSeries, {
+  color: '#7e57c2',
+  lineWidth: 1.5,
+  priceLineVisible: false,
+  lastValueVisible: true,
+});
+ma60Series.setData(ma60Data);
+
+// Volume series
+const volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
+  color: 'rgba(41,98,255,0.3)',
+  priceFormat: { type: 'volume' },
+  priceScaleId: '',
+});
+volumeSeries.priceScale().applyOptions({
+  scaleMargins: { top: 0.82, bottom: 0 },
+});
+const volumeData = candleData.map(c => ({
+  time: c.time,
+  value: Math.floor(Math.random() * 5000 + 1000),
+  color: c.close >= c.open ? 'rgba(0,184,122,0.3)' : 'rgba(239,83,80,0.3)',
+}));
+volumeSeries.setData(volumeData);
+
+chart.timeScale().fitContent();
+
+// Responsive resize
+const ro = new ResizeObserver(() => {
+  chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
+});
+ro.observe(chartEl);
+
+// ===== Timeframe Switching =====
+document.querySelectorAll('.tf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ===== Positions Data =====
+const positionsData = [
+  { symbol: 'XAUUSD', type: 'BUY', lot: 0.05, openPrice: 2337.80, currentPrice: 2350.12, sl: 2330.00, tp: 2365.00, pnl: 61.60 },
+  { symbol: 'EURUSD', type: 'SELL', lot: 0.10, openPrice: 1.0856, currentPrice: 1.0782, sl: 1.0900, tp: 1.0720, pnl: 74.00 },
+];
+
+function renderPositions() {
+  const tbody = document.getElementById('positions-tbody');
+  tbody.innerHTML = positionsData.map(p => `
+    <tr>
+      <td style="font-weight:600">${p.symbol}</td>
+      <td><span class="position-badge ${p.type.toLowerCase()}">${p.type === 'BUY' ? '买入' : '卖出'}</span></td>
+      <td>${p.lot.toFixed(2)}</td>
+      <td>${p.openPrice.toFixed(p.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td>${p.currentPrice.toFixed(p.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td class="${p.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${p.pnl >= 0 ? '+' : ''}$${p.pnl.toFixed(2)}</td>
+    </tr>
+  `).join('');
+}
+renderPositions();
+
+// ===== Signals Data =====
+const signalsData = [
+  { time: '15:28:02', symbol: 'XAUUSD', tf: 'M5', strategy: 'MA Cross', signal: 'BUY', price: 2350.12, confidence: 0.82, reason: 'MA20 crossed above MA60' },
+  { time: '15:25:00', symbol: 'XAUUSD', tf: 'M15', strategy: 'RSI', signal: 'BUY', price: 2348.50, confidence: 0.68, reason: 'RSI(14) oversold bounce at 28.5' },
+  { time: '15:20:00', symbol: 'EURUSD', tf: 'M5', strategy: 'MACD', signal: 'SELL', price: 1.0782, confidence: 0.71, reason: 'MACD histogram turned negative' },
+  { time: '15:15:00', symbol: 'XAUUSD', tf: 'M5', strategy: 'MA Cross', signal: 'HOLD', price: 2347.30, confidence: 0.50, reason: 'no crossover' },
+  { time: '15:10:00', symbol: 'XAUUSD', tf: 'M15', strategy: 'Breakout', signal: 'BUY', price: 2346.80, confidence: 0.75, reason: 'Price broke above resistance 2345' },
+  { time: '15:05:00', symbol: 'GBPUSD', tf: 'M5', strategy: 'MA Cross', signal: 'SELL', price: 1.2634, confidence: 0.65, reason: 'MA20 crossed below MA60' },
+  { time: '15:00:00', symbol: 'XAUUSD', tf: 'M1', strategy: 'RSI', signal: 'HOLD', price: 2345.00, confidence: 0.45, reason: 'RSI in neutral zone 48.2' },
+];
+
+const signalLabels = { BUY: '买入', SELL: '卖出', HOLD: '观望' };
+
+function renderSignals() {
+  const tbody = document.getElementById('signals-tbody');
+  tbody.innerHTML = signalsData.map(s => `
+    <tr>
+      <td style="font-size:12px">${s.time}</td>
+      <td>${s.symbol}</td>
+      <td style="font-size:12px">${s.tf}</td>
+      <td style="font-size:12px">${s.strategy}</td>
+      <td><span class="signal-cell ${s.signal.toLowerCase()}">${signalLabels[s.signal]}</span></td>
+      <td>${s.price.toFixed(s.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td>
+        <span class="confidence-bar" style="width:${Math.round(s.confidence * 40)}px;background:${s.confidence > 0.7 ? 'var(--green)' : s.confidence > 0.5 ? 'var(--warning)' : 'var(--text-secondary)'}"></span>
+        ${Math.round(s.confidence * 100)}%
+      </td>
+      <td class="reason-cell" title="${s.reason}">${s.reason}</td>
+    </tr>
+  `).join('');
+}
+renderSignals();
+
+// ===== Strategies =====
+const strategies = [
+  { name: 'MA Cross', symbol: 'XAUUSD', tf: 'M5', status: 'running', signal: 'BUY', params: { fast: 20, slow: 60 } },
+  { name: 'RSI Strategy', symbol: 'XAUUSD', tf: 'M15', status: 'running', signal: 'BUY', params: { period: 14, oversold: 30, overbought: 70 } },
+  { name: 'MACD Strategy', symbol: 'EURUSD', tf: 'M5', status: 'running', signal: 'SELL', params: { fast: 12, slow: 26, signal: 9 } },
+  { name: 'Breakout', symbol: 'XAUUSD', tf: 'M15', status: 'stopped', signal: 'HOLD', params: { period: 20, threshold: 0.5 } },
+  { name: 'Bollinger', symbol: 'XAUUSD', tf: 'M30', status: 'stopped', signal: 'HOLD', params: { period: 20, stddev: 2 } },
+  { name: 'Multi-Scan', symbol: 'EURUSD', tf: 'H1', status: 'stopped', signal: 'HOLD', params: { symbols: 'XAUUSD,EURUSD,GBPUSD' } },
+];
+
+function renderStrategies() {
+  const grid = document.getElementById('strategy-grid');
+  grid.innerHTML = strategies.map(s => `
+    <div class="strategy-card">
+      <div class="strategy-card-header">
+        <span class="strategy-name">${s.name}</span>
+        <span class="strategy-status ${s.status}"></span>
+      </div>
+      <div class="strategy-meta">
+        <span>${s.symbol}</span>
+        <span>·</span>
+        <span>${s.tf}</span>
+        <span>·</span>
+        <span>${s.status === 'running' ? '运行中' : '已停止'}</span>
+      </div>
+      <div class="strategy-signal ${s.signal.toLowerCase()}">
+        ${signalLabels[s.signal]}
+      </div>
+      <div class="strategy-params">
+        ${Object.entries(s.params).map(([k, v]) => `<span>${k}: <span>${v}</span></span>`).join('')}
+      </div>
+      <div style="margin-top:auto;display:flex;gap:8px;">
+        ${s.status === 'running'
+          ? '<button class="btn-sm stop" onclick="alert(\'策略已停止\')">停止</button>'
+          : '<button class="btn-sm start" onclick="alert(\'策略已启动\')">启动</button>'
+        }
+        <button class="btn-sm" style="margin-left:auto" onclick="alert(\'参数配置\')">参数</button>
+      </div>
+    </div>
+  `).join('');
+}
+renderStrategies();
+
+// ===== Orders Data =====
+const ordersData = [
+  { time: '14:55:00', symbol: 'XAUUSD', type: '买入', lot: 0.05, price: 2337.80, sl: 2330.00, tp: 2365.00, status: '已成交', comment: 'MA Cross 信号' },
+  { time: '14:30:00', symbol: 'EURUSD', type: '卖出', lot: 0.10, price: 1.0856, sl: 1.0900, tp: 1.0720, status: '已成交', comment: 'MACD 信号' },
+  { time: '13:15:00', symbol: 'XAUUSD', type: '买入', lot: 0.03, price: 2342.50, sl: 2335.00, tp: 2358.00, status: '已平仓', comment: '止盈触发 +$46.50' },
+  { time: '11:45:00', symbol: 'GBPUSD', type: '卖出', lot: 0.05, price: 1.2660, sl: 1.2720, tp: 1.2580, status: '已取消', comment: '风控拒绝：持仓超限' },
+  { time: '10:20:00', symbol: 'XAUUSD', type: '买入', lot: 0.10, price: 2335.20, sl: 2325.00, tp: 2355.00, status: '已拒绝', comment: '手数超过最大限制' },
+];
+
+const statusColors = { '已成交': 'var(--green)', '已平仓': 'var(--text-secondary)', '已取消': 'var(--warning)', '已拒绝': 'var(--red)' };
+
+function renderOrders() {
+  const tbody = document.getElementById('orders-tbody');
+  tbody.innerHTML = ordersData.map(o => `
+    <tr>
+      <td style="font-size:12px">${o.time}</td>
+      <td style="font-weight:600">${o.symbol}</td>
+      <td style="color:${o.type === '买入' ? 'var(--green)' : 'var(--red)'}">${o.type}</td>
+      <td>${o.lot.toFixed(2)}</td>
+      <td>${o.price.toFixed(o.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td>${o.sl.toFixed(o.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td>${o.tp.toFixed(o.symbol === 'XAUUSD' ? 2 : 4)}</td>
+      <td style="color:${statusColors[o.status] || 'var(--text-primary)'}">${o.status}</td>
+      <td style="font-size:12px;color:var(--text-secondary)">${o.comment}</td>
+    </tr>
+  `).join('');
+}
+renderOrders();
+
+// ===== Alerts Data =====
+const alertsData = [
+  { level: 'success', icon: '✓', msg: '【MA Cross】XAUUSD M5 产生买入信号 @ 2350.12 — 已推送 Telegram', time: '15:28:05' },
+  { level: 'success', icon: '✓', msg: '【RSI】XAUUSD M15 超卖反弹信号 @ 2348.50 — 已推送飞书', time: '15:25:02' },
+  { level: 'info', icon: 'ℹ', msg: '【系统】WebSocket 客户端连接：127.0.0.1:5173', time: '15:22:00' },
+  { level: 'warn', icon: '⚠', msg: '【风控】EURUSD 点差扩大至 2.3 pips，超过阈值 2.0', time: '15:18:30' },
+  { level: 'info', icon: 'ℹ', msg: '【系统】策略引擎每1分钟定时扫描已启动', time: '15:15:00' },
+  { level: 'error', icon: '✗', msg: '【风控】GBPUSD 买入被拒绝：持仓数量已达上限(3)', time: '11:45:10' },
+  { level: 'warn', icon: '⚠', msg: '【连接】MT5 连接超时重试中... (第2次)', time: '09:05:00' },
+  { level: 'success', icon: '✓', msg: '【连接】MT5 重新连接成功，延迟 15ms', time: '09:04:30' },
+];
+
+function renderAlerts() {
+  const list = document.getElementById('alerts-list');
+  list.innerHTML = alertsData.map(a => `
+    <div class="alert-item ${a.level}">
+      <span class="alert-icon">${a.icon}</span>
+      <span class="alert-msg">${a.msg}</span>
+      <span class="alert-time">${a.time}</span>
+    </div>
+  `).join('');
+}
+renderAlerts();
+
+// ===== Tab Switching =====
+function switchTab(name) {
+  document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-content').forEach(c => c.classList.remove('active'));
+
+  const tabBtn = document.querySelector(`[data-tab="${name}"]`);
+  const tabContent = document.getElementById(`tab-${name}`);
+  if (tabBtn) tabBtn.classList.add('active');
+  if (tabContent) tabContent.classList.add('active');
+}
+
+// ===== Emergency Stop =====
+function emergencyStop() {
+  if (confirm('确认一键停止？\n\n这将：\n• 停止所有运行中的策略\n• 禁止所有自动下单\n• 关闭 WebSocket 推送\n\n此操作不可撤销。')) {
+    alert('✅ 所有策略已停止\n✅ 自动交易已禁用\n✅ WebSocket 已断开\n\n系统已进入安全模式。');
+    document.getElementById('conn-status').innerHTML = '<span style="color:var(--warning)">⚠ 安全模式</span>';
+    document.getElementById('conn-status').classList.remove('green');
+  }
+}
+
+// ===== Clock =====
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0') + ':' +
+    String(now.getSeconds()).padStart(2, '0');
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== Simulated Price Updates =====
+function updatePrice() {
+  const delta = (Math.random() - 0.5) * 3;
+  const newPrice = BASE_PRICE + (Math.random() - 0.5) * 15;
+  const change = newPrice - 2345.00;
+  const changePct = (change / 2345.00 * 100);
+
+  const priceEl = document.getElementById('current-price');
+  const changeEl = document.getElementById('current-change');
+
+  priceEl.textContent = newPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  priceEl.className = 'chart-price ' + (change >= 0 ? 'up' : 'down');
+  changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%)';
+  changeEl.className = 'chart-change ' + (change >= 0 ? 'up' : 'down');
+
+  // Update positions current prices
+  positionsData[0].currentPrice = newPrice;
+  positionsData[0].pnl = +(0.05 * 100 * (newPrice - positionsData[0].openPrice)).toFixed(2);
+  renderPositions();
+
+  // Update latency
+  document.getElementById('latency').textContent = Math.floor(Math.random() * 5 + 10) + 'ms';
+}
+setInterval(updatePrice, 2000);
+
+// ===== Refresh =====
+function refreshData() {
+  updatePrice();
+  // Flash visual feedback
+  const btn = document.querySelector('.btn-icon');
+  btn.style.transform = 'rotate(180deg)';
+  setTimeout(() => { btn.style.transform = 'rotate(0deg)'; }, 300);
+}
+</script>
+
+</body>
+</html>

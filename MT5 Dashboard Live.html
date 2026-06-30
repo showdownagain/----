@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MT5 Trading Dashboard — Live</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+/* ===== Design Tokens ===== */
+:root {
+  --bg-primary: #131820;
+  --bg-secondary: #1c2030;
+  --bg-tertiary: #242838;
+  --bg-hover: #2a3040;
+  --border: #2a3040;
+  --border-light: #363c4e;
+  --text-primary: #d1d4dc;
+  --text-secondary: #787b86;
+  --text-bright: #f0f0f0;
+  --text-white: #ffffff;
+  --green: #00b87a;
+  --green-bg: rgba(0,184,122,0.12);
+  --red: #ef5350;
+  --red-bg: rgba(239,83,80,0.12);
+  --blue: #2962ff;
+  --blue-bg: rgba(41,98,255,0.10);
+  --warning: #ffa726;
+  --warning-bg: rgba(255,167,38,0.12);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", "Consolas", "Monaco", monospace;
+  --font-data: "DIN Alternate", "SF Mono", "Cascadia Code", "Consolas", monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== App Shell ===== */
+#app {
+  display: grid;
+  grid-template-rows: 48px 1fr 280px;
+  grid-template-columns: 1fr 340px;
+  grid-template-areas:
+    "topbar topbar"
+    "chart  aside"
+    "bottom bottom";
+  height: 100vh;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* ===== Top Bar ===== */
+#topbar {
+  grid-area: topbar;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  min-width: 0;
+}
+
+.topbar-brand { font-size: 15px; font-weight: 700; color: var(--text-white); display: flex; align-items: center; gap: 8px; }
+
+.topbar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.topbar-dot.online { background: var(--green); box-shadow: 0 0 6px rgba(0,184,122,0.5); animation: pulse 2s infinite; }
+.topbar-dot.offline { background: var(--red); }
+.topbar-dot.nomt5 { background: var(--warning); }
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+
+.topbar-divider { width: 1px; height: 20px; background: var(--border-light); }
+
+.topbar-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.topbar-label { color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.topbar-value { color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+.topbar-value.green { color: var(--green); }
+.topbar-value.warn { color: var(--warning); }
+
+.topbar-spacer { flex: 1; }
+.topbar-time { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+.topbar-badge { font-size: 10px; padding: 2px 8px; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+.topbar-badge.live { background: var(--green-bg); color: var(--green); }
+.topbar-badge.db { background: var(--blue-bg); color: var(--blue); }
+
+/* ===== Chart Area ===== */
+#chart-area { grid-area: chart; background: var(--bg-primary); display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+.chart-toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 16px; background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chart-toolbar::-webkit-scrollbar { display: none; }
+.chart-symbol { font-size: 18px; font-weight: 700; color: var(--text-white); margin-right: 8px; }
+.chart-price { font-family: var(--font-data); font-size: 18px; font-weight: 600; margin-right: 6px; }
+.chart-price.up { color: var(--green); } .chart-price.down { color: var(--red); }
+.chart-change { font-family: var(--font-data); font-size: 13px; padding: 2px 8px; border-radius: var(--radius-sm); }
+.chart-change.up { color: var(--green); background: var(--green-bg); }
+.chart-change.down { color: var(--red); background: var(--red-bg); }
+
+.tf-btn { min-width: 44px; min-height: 28px; padding: 4px 12px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-family: var(--font-mono); transition: all 0.15s; flex: 0 0 auto; }
+.tf-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.tf-btn.active { color: var(--text-white); background: var(--blue); border-color: var(--blue); }
+
+.chart-container { flex: 1; position: relative; min-height: 0; }
+.chart-container > div { width: 100%; height: 100%; }
+
+.chart-watermark {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: var(--text-secondary); font-size: 13px; text-align: center; pointer-events: none; z-index: 5;
+}
+.chart-watermark small { font-size: 11px; display: block; margin-top: 4px; }
+
+/* ===== Aside ===== */
+#aside { grid-area: aside; display: flex; flex-direction: column; gap: 1px; background: var(--border); overflow: hidden; min-width: 0; }
+
+#account-panel { background: var(--bg-secondary); padding: 16px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; min-width: 0; }
+
+.panel-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; justify-content: space-between; }
+.panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-left: 12px; }
+
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.account-item { display: flex; flex-direction: column; gap: 2px; }
+.account-item.full { grid-column: 1 / -1; }
+.account-item .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; }
+.account-item .value { font-family: var(--font-data); font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.account-item .value.large { font-size: 20px; color: var(--text-white); }
+.account-item .value.green { color: var(--green); } .account-item .value.red { color: var(--red); }
+.account-item .value.dim { color: var(--text-secondary); font-size: 14px; }
+
+.account-bar { grid-column: 1 / -1; height: 4px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.account-bar-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width 0.5s ease; }
+
+#positions-panel { background: var(--bg-secondary); flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.positions-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px; }
+.positions-count { font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono); }
+
+.positions-table-wrap { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+.positions-table-wrap::-webkit-scrollbar { width: 4px; }
+.positions-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.positions-table-wrap::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+table.positions { width: 100%; border-collapse: collapse; }
+table.positions th { text-align: left; font-size: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 8px 6px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg-secondary); }
+table.positions td { padding: 6px 8px; font-size: 13px; font-family: var(--font-data); color: var(--text-primary); border-bottom: 1px solid rgba(42,48,64,0.5); }
+table.positions tr:hover td { background: var(--bg-hover); }
+
+.position-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 700; font-family: var(--font-ui); }
+.position-badge.buy { color: var(--green); background: var(--green-bg); }
+.position-badge.sell { color: var(--red); background: var(--red-bg); }
+
+/* ===== Bottom Panel ===== */
+#bottom { grid-area: bottom; background: var(--bg-secondary); display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.bottom-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; flex-shrink: 0; }
+.bottom-tab { padding: 10px 20px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: var(--font-ui); }
+.bottom-tab:hover { color: var(--text-primary); }
+.bottom-tab.active { color: var(--text-white); border-bottom-color: var(--blue); }
+.bottom-content { flex: 1; overflow-y: auto; padding: 16px 24px; display: none; }
+.bottom-content.active { display: flex; flex-direction: column; }
+.bottom-content::-webkit-scrollbar { width: 4px; }
+.bottom-content::-webkit-scrollbar-track { background: transparent; }
+.bottom-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* ===== Empty State ===== */
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 13px; text-align: center; }
+.empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+
+/* ===== Alerts ===== */
+.alerts-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: var(--radius-sm); border-left: 3px solid var(--border); }
+.alert-item.info { border-left-color: var(--blue); } .alert-item.warn { border-left-color: var(--warning); } .alert-item.error { border-left-color: var(--red); } .alert-item.success { border-left-color: var(--green); }
+.alert-msg { flex: 1; font-size: 13px; color: var(--text-primary); }
+.alert-time { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
+
+/* ===== ATR Overlay Panel ===== */
+#atr-overlay {
+  position: absolute; top: 8px; left: 8px; z-index: 20;
+  background: rgba(28,32,48,0.95); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 6px 10px;
+  font-size: 11px; font-family: var(--font-mono);
+  max-height: 48px; overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  cursor: default;
+  backdrop-filter: blur(8px);
+  width: fit-content;
+}
+#atr-overlay:hover {
+  max-height: 480px; padding: 8px 10px;
+  overflow-y: auto; z-index: 30;
+  width: fit-content;
+}
+#atr-overlay::-webkit-scrollbar { width: 3px; }
+#atr-overlay::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+#atr-overlay table { border-collapse: collapse; white-space: nowrap; table-layout: auto; }
+#atr-overlay th { font-size: 12px; font-weight: 600; color: var(--text-secondary); padding: 5px 10px 3px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(28,32,48,0.98); }
+#atr-overlay th:first-child { text-align: left; min-width: 34px; }
+#atr-overlay td { padding: 4px 10px; text-align: right; font-size: 13px; border-bottom: 1px solid rgba(42,48,64,0.2); line-height: 1.6; }
+#atr-overlay td:first-child { text-align: left; font-weight: 600; }
+#atr-overlay tr:hover td { background: var(--bg-hover); }
+#atr-overlay .atr-row-sel td { background: rgba(41,98,255,0.15); }
+#atr-overlay .atr-compact { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.atr-compact-item { display: flex; align-items: center; gap: 3px; }
+.atr-compact-label { color: var(--text-secondary); font-size: 10px; text-transform: uppercase; }
+.atr-compact-val { font-weight: 700; }
+
+/* ===== Trading Controls ===== */
+#trade-panel { background: var(--bg-secondary); padding: 16px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; min-width: 0; }
+.trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trade-item { display: flex; flex-direction: column; gap: 2px; }
+.trade-item.full { grid-column: 1 / -1; }
+.trade-item .tlabel { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; }
+.trade-item input { width: 100%; padding: 5px 8px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; outline: none; }
+.trade-item input:focus { border-color: var(--blue); }
+.trade-calc { font-family: var(--font-data); font-size: 13px; font-weight: 600; padding: 3px 0; }
+.trade-calc.green { color: var(--green); } .trade-calc.red { color: var(--red); } .trade-calc.gold { color: var(--warning); }
+.trade-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px; }
+.trade-btn { padding: 9px 6px; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; font-family: var(--font-ui); }
+.trade-btn.buy { background: var(--green); } .trade-btn.buy:hover { background: #00d68a; }
+.trade-btn.sell { background: var(--red); } .trade-btn.sell:hover { background: #ff6b6b; }
+.trade-btn.close { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+.trade-btn.apply { background: #b8860b; } .trade-btn.apply:hover { background: #d4a017; }
+.trade-toggle { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.trade-toggle-btn { padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 10px; font-weight: 600; transition: all 0.15s; font-family: var(--font-ui); }
+.trade-toggle-btn.armed { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+
+@media (max-width: 1100px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: 48px 400px auto 280px; grid-template-areas: "topbar" "chart" "aside" "bottom"; overflow-y: auto; }
+  #aside { flex-direction: row; max-height: 320px; }
+  #account-panel, #positions-panel { flex: 1; }
+}
+
+@media (max-width: 700px) {
+  #app { grid-template-rows: 48px 400px auto 280px; }
+  #topbar { gap: 12px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; }
+  #topbar::-webkit-scrollbar { display: none; }
+  .topbar-brand { min-width: 92px; }
+  .topbar-item { min-width: max-content; }
+  .chart-toolbar { padding: 8px 12px; }
+  .chart-symbol { margin-right: 4px; }
+  .chart-price { min-width: 68px; }
+  .chart-change { min-width: 72px; text-align: center; }
+  #aside { flex-direction: column; max-height: none; }
+  #account-panel, #positions-panel { width: 100%; flex: none; }
+  #positions-panel { min-height: 180px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-dot offline" id="status-dot"></span>
+      <span>MT5 Trading</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">账户</span>
+      <span class="topbar-value dim" id="top-account">---</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">服务器</span>
+      <span class="topbar-value dim" id="top-server">---</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item">
+      <span class="topbar-label">状态</span>
+      <span class="topbar-value warn" id="top-status">● 后端未连接</span>
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-item" style="max-width:320px;overflow:hidden">
+      <span class="topbar-value" id="top-data-status" style="white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:11px;color:var(--text-secondary)">等待连接...</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-time" id="clock">---</div>
+  </div>
+
+  <!-- Chart -->
+  <div id="chart-area">
+    <div class="chart-toolbar">
+      <span class="chart-symbol" id="chart-symbol-name">XAUUSD</span>
+      <span class="chart-price" id="current-price">---</span>
+      <span class="chart-change" id="current-change">等待数据...</span>
+      <span class="topbar-divider"></span>
+      <span id="server-clock" style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">---</span>
+      <span class="topbar-divider"></span>
+      <span style="font-size:12px;color:var(--text-secondary)">
+        余额 <b id="ch-balance" style="color:var(--text-primary)">---</b>
+        净值 <b id="ch-equity" style="color:var(--text-primary)">---</b>
+        可用 <b id="ch-margin-free" style="color:#00b87a">---</b>
+        已用 <b id="ch-margin" style="color:var(--text-primary)">---</b>
+        保证金率 <b id="ch-margin-level" style="color:var(--text-primary)">---</b>
+        杠杆 <b id="ch-leverage" style="color:var(--text-primary)">---</b>
+        浮动 <b id="ch-profit" style="color:var(--text-primary)">---</b>
+      </span>
+      <span style="flex:1"></span>
+      <button class="tf-btn" data-tf="1m">1m</button>
+      <button class="tf-btn active" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+      <button class="tf-btn" data-tf="1h">1H</button>
+      <button class="tf-btn" data-tf="4h">4H</button>
+      <button class="tf-btn" data-tf="D">日</button>
+    </div>
+    <div class="chart-container">
+      <div id="chart"></div>
+      <div id="atr-overlay">
+        <div class="atr-compact" id="atr-compact-row">
+          <span style="color:var(--text-secondary);font-size:9px;">▸ ATR统计</span>
+          <span style="color:var(--text-secondary)">...</span>
+        </div>
+        <div style="display:none" id="atr-full-table">
+          <table><thead><tr><th>周期</th><th>ATR1</th><th>ATR5</th><th>ATR50</th><th>1/5</th><th>5/50</th><th>1/50</th><th>状态</th></tr></thead><tbody id="atr-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="chart-watermark" id="chart-watermark">
+        ⏳ 正在加载历史数据...<br><small>来源: 本地 SQLite 数据库</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aside -->
+  <div id="aside">
+    <div id="account-panel" style="padding:6px 16px;flex-shrink:0;background:var(--bg-secondary)">
+      <div style="height:3px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
+        <div id="acct-margin-bar" style="height:100%;width:0%;background:var(--blue);border-radius:2px;transition:width 0.5s"></div>
+      </div>
+    </div>
+
+    <div id="trade-panel" style="display:none">
+      <div class="panel-title">交易参数<span id="trade-tf-label" style="font-weight:400;font-size:10px;color:var(--text-secondary)"> · M5</span></div>
+      <div class="trade-grid">
+        <div class="trade-item">
+          <span class="tlabel">单笔风险%</span>
+          <input type="text" id="trade-risk-pct" value="1.0" onchange="recalcTrade()">
+        </div>
+        <div class="trade-item">
+          <span class="tlabel">风险金额</span>
+          <input type="text" id="trade-risk-amt" value="" onchange="recalcTrade()">
+        </div>
+        <div class="trade-item">
+          <span class="tlabel">止损 ATR5×</span>
+          <input type="text" id="trade-sl-mult" value="1.5" onchange="recalcTrade()">
+        </div>
+        <div class="trade-item">
+          <span class="tlabel">止盈 ATR5×</span>
+          <input type="text" id="trade-tp-mult" value="2.0" onchange="recalcTrade()">
+        </div>
+        <div class="trade-item">
+          <span class="tlabel">止损点数</span>
+          <span class="trade-calc red" id="trade-sl-points">---</span>
+        </div>
+        <div class="trade-item">
+          <span class="tlabel">止盈点数</span>
+          <span class="trade-calc green" id="trade-tp-points">---</span>
+        </div>
+        <div class="trade-item full">
+          <span class="tlabel">以损定仓手数</span>
+          <span class="trade-calc gold" id="trade-lots" style="font-size:18px">---</span>
+        </div>
+      </div>
+      <div class="trade-btns">
+        <button class="trade-btn buy" onclick="tradeAction('BUY')">▲ BUY</button>
+        <button class="trade-btn sell" onclick="tradeAction('SELL')">▼ SELL</button>
+        <button class="trade-btn close" onclick="tradeAction('CLOSE')">平仓</button>
+        <button class="trade-btn apply" onclick="tradeAction('APPLY')">应用参数</button>
+      </div>
+      <div class="trade-toggle">
+        <span class="tlabel" style="flex:1">推保护</span>
+        <input type="text" id="trade-prot-trigger" value="200" style="width:50px;text-align:center;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-size:11px;padding:3px" title="启动点数">
+        <span style="color:var(--text-secondary);font-size:10px">赢利点</span>
+        <input type="text" id="trade-prot-profit" value="0" style="width:50px;text-align:center;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-size:11px;padding:3px" title="保护点数">
+        <button class="trade-toggle-btn" id="btn-protect" onclick="toggleProtect()">推保护 OFF</button>
+      </div>
+      <div class="trade-toggle">
+        <span class="tlabel" style="flex:1">追踪止损</span>
+        <input type="text" id="trade-trail-start" value="300" style="width:50px;text-align:center;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-size:11px;padding:3px" title="启动点数">
+        <span style="color:var(--text-secondary);font-size:10px">距离</span>
+        <input type="text" id="trade-trail-dist" value="150" style="width:50px;text-align:center;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);font-size:11px;padding:3px" title="追踪距离点数">
+        <button class="trade-toggle-btn" id="btn-trail" onclick="toggleTrail()">追踪止损 OFF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom -->
+  <div id="bottom">
+    <div class="bottom-tabs">
+      <button class="bottom-tab active" data-tab="trading" onclick="switchTab('trading')">交易</button>
+      <button class="bottom-tab" data-tab="alerts" onclick="switchTab('alerts')">系统日志</button>
+    </div>
+    <div class="bottom-content active" id="tab-trading">
+      <div style="display:flex;gap:16px;flex:1;overflow:hidden;min-height:0">
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+          <div class="panel-title" style="margin-bottom:8px">当前持仓 <span id="btm-pos-count" style="font-weight:400;font-size:11px;color:var(--text-secondary)">---</span></div>
+          <div style="overflow-y:auto;flex:1" id="btm-pos-wrap">
+            <div class="empty-state" id="btm-pos-empty"><div>暂无持仓</div></div>
+            <table class="positions" id="btm-positions-table" style="display:none;width:100%">
+              <thead><tr><th>品种</th><th>方向</th><th>手数</th><th>开仓价</th><th>当前价</th><th>止损</th><th>止盈</th><th>盈亏</th></tr></thead>
+              <tbody id="btm-pos-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+          <div class="panel-title" style="margin-bottom:8px">当前挂单 <span id="btm-ord-count" style="font-weight:400;font-size:11px;color:var(--text-secondary)">---</span></div>
+          <div style="overflow-y:auto;flex:1" id="btm-ord-wrap">
+            <div class="empty-state" id="btm-ord-empty"><div>暂无挂单</div></div>
+            <table class="positions" id="btm-orders-table" style="display:none;width:100%">
+              <thead><tr><th>品种</th><th>类型</th><th>手数</th><th>挂单价</th><th>止损</th><th>止盈</th><th>状态</th></tr></thead>
+              <tbody id="btm-ord-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-content" id="tab-alerts">
+      <div class="alerts-list" id="alerts-list">
+        <div class="alert-item info"><span class="alert-msg">等待系统事件...</span><span class="alert-time">---</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Configuration
+// ═══════════════════════════════════════════════════════════
+const API_BASE = 'http://127.0.0.1:8000';
+const WS_BASE  = 'ws://127.0.0.1:8000';
+const SYMBOL   = 'XAUUSD';
+let backendOnline = false;
+let mt5Connected = false;
+let currentPrice = null;
+let cachedTicks = [];
+let cachedCandles = [];
+let currentTimeframeMinutes = 5;
+let currentTimeframeLabel = '5m';
+
+const TIMEFRAMES = {
+  '1m':  { minutes: 1,    api: 'M1',  label: '1m',  rateCount: 260, visibleBars: 190, barSpacing: 8 },
+  '5m':  { minutes: 5,    api: 'M5',  label: '5m',  rateCount: 260, visibleBars: 180, barSpacing: 8 },
+  '15m': { minutes: 15,   api: 'M15', label: '15m', rateCount: 240, visibleBars: 170, barSpacing: 8 },
+  '1h':  { minutes: 60,   api: 'H1',  label: '1H',  rateCount: 220, visibleBars: 150, barSpacing: 9 },
+  '4h':  { minutes: 240,  api: 'H4',  label: '4H',  rateCount: 200, visibleBars: 130, barSpacing: 10 },
+  'D':   { minutes: 1440, api: 'D1',  label: '日',  rateCount: 180, visibleBars: 110, barSpacing: 11 },
+};
+
+// ═══════════════════════════════════════════════════════════
+// Lightweight Charts
+// ═══════════════════════════════════════════════════════════
+const chartEl = document.getElementById('chart');
+const chart = LightweightCharts.createChart(chartEl, {
+  width: chartEl.clientWidth,
+  height: chartEl.clientHeight,
+  layout: { background: { type: 'solid', color: '#131820' }, textColor: '#787b86', fontSize: 12 },
+  grid: { vertLines: { color: 'rgba(42,48,64,0.6)' }, horzLines: { color: 'rgba(42,48,64,0.6)' } },
+  crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  rightPriceScale: { borderColor: '#2a3040', scaleMargins: { top: 0.1, bottom: 0.2 } },
+  timeScale: {
+    borderColor: '#2a3040',
+    timeVisible: true,
+    secondsVisible: false,
+    rightOffset: 8,
+    barSpacing: 8,
+    minBarSpacing: 4,
+  },
+  localization: {
+    locale: 'en-US',
+    timeFormatter: function(ts) {
+      const d = new Date(ts * 1000);
+      const Y = d.getFullYear();
+      const M = String(d.getMonth() + 1).padStart(2, '0');
+      const D = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      return Y + '-' + M + '-' + D + ' ' + h + ':' + m;
+    },
+  },
+});
+
+const candleSeries = chart.addCandlestickSeries({
+  upColor: '#00b87a', downColor: '#ef5350', borderDownColor: '#ef5350',
+  borderUpColor: '#00b87a', wickDownColor: '#ef5350', wickUpColor: '#00b87a',
+});
+
+// Volume series
+const volumeSeries = chart.addHistogramSeries({
+  color: 'rgba(41,98,255,0.3)', priceFormat: { type: 'volume' }, priceScaleId: '',
+});
+volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+
+// MA lines
+const ma20Series = chart.addLineSeries({ color: '#ffa726', lineWidth: 1.5, priceLineVisible: false });
+const ma60Series = chart.addLineSeries({ color: '#7e57c2', lineWidth: 1.5, priceLineVisible: false });
+
+function resizeChart() {
+  const rect = chartEl.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    chart.applyOptions({ width: Math.floor(rect.width), height: Math.floor(rect.height) });
+    applyChartViewport(cachedCandles, currentTimeframeMinutes);
+  }
+}
+new ResizeObserver(() => requestAnimationFrame(resizeChart)).observe(chartEl.parentElement);
+window.addEventListener('resize', resizeChart);
+requestAnimationFrame(resizeChart);
+
+// ═══════════════════════════════════════════════════════════
+// Tick → OHLC Aggregation
+// ═══════════════════════════════════════════════════════════
+function parseTickTimestamp(value) {
+  if (value === null || value === undefined) return NaN;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value > 1e12 ? value : value * 1000;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return NaN;
+
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return NaN;
+    return n > 1e12 ? n : n * 1000;
+  }
+
+  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+  return Date.parse(normalized);
+}
+
+function normalizeTick(t) {
+  const ts = parseTickTimestamp(t?.time);
+  const bid = Number(t?.bid);
+  const ask = Number(t?.ask);
+  if (!Number.isFinite(ts) || !Number.isFinite(bid) || !Number.isFinite(ask)) return null;
+  return {
+    ts,
+    bid,
+    ask,
+    mid: (bid + ask) / 2,
+    volume: Number(t?.volume) || 1,
+    raw: t,
+  };
+}
+
+function aggregateTicksToOHLC(ticks, timeframeMinutes) {
+  if (!ticks || ticks.length === 0) return [];
+  const intervalMs = timeframeMinutes * 60000;
+  const normalizedTicks = ticks
+    .map(normalizeTick)
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts);
+
+  const buckets = new Map();
+  for (const t of normalizedTicks) {
+    const bucket = Math.floor(t.ts / intervalMs) * intervalMs;
+    if (!buckets.has(bucket)) {
+      buckets.set(bucket, {
+        time: bucket / 1000,
+        open: t.mid,
+        high: t.mid,
+        low: t.mid,
+        close: t.mid,
+        volume: 0,
+      });
+    }
+    const candle = buckets.get(bucket);
+    candle.high = Math.max(candle.high, t.mid);
+    candle.low = Math.min(candle.low, t.mid);
+    candle.close = t.mid;
+    candle.volume += t.volume;
+  }
+
+  return Array.from(buckets.values()).sort((a, b) => a.time - b.time);
+}
+
+function calcMA(data, period) {
+  const result = [];
+  for (let i = period - 1; i < data.length; i++) {
+    let sum = 0;
+    for (let j = 0; j < period; j++) sum += data[i - j].close;
+    result.push({ time: data[i].time, value: sum / period });
+  }
+  return result;
+}
+
+function timeframeVisibleBars(tfMinutes) {
+  const cfg = Object.values(TIMEFRAMES).find(item => item.minutes === tfMinutes);
+  if (cfg) return cfg.visibleBars;
+  if (tfMinutes <= 1) return 190;
+  if (tfMinutes <= 5) return 180;
+  if (tfMinutes <= 15) return 170;
+  if (tfMinutes <= 60) return 150;
+  if (tfMinutes <= 240) return 130;
+  return 110;
+}
+
+function applyChartViewport(candles, tfMinutes) {
+  if (!candles || candles.length === 0) return;
+  const cfg = Object.values(TIMEFRAMES).find(item => item.minutes === tfMinutes);
+  const visibleBars = Math.min(candles.length, timeframeVisibleBars(tfMinutes));
+  const width = chartEl.clientWidth || 900;
+  const targetSpacing = cfg?.barSpacing || 8;
+  const fittedSpacing = Math.floor(width / Math.max(visibleBars + 20, 1));
+  const barSpacing = Math.max(5, Math.min(11, Math.min(targetSpacing, Math.max(5, fittedSpacing))));
+  const rightOffset = 8;
+
+  chart.timeScale().applyOptions({ barSpacing, rightOffset });
+  if (candles.length <= visibleBars) {
+    chart.timeScale().fitContent();
+    return;
+  }
+
+  chart.timeScale().setVisibleLogicalRange({
+    from: Math.max(0, candles.length - visibleBars),
+    to: candles.length - 1 + rightOffset,
+  });
+}
+
+function setChartData(candles, tfMinutes, label) {
+  cachedCandles = candles;
+  currentTimeframeMinutes = tfMinutes;
+  currentTimeframeLabel = label;
+
+  candleSeries.setData(candles);
+  volumeSeries.setData(candles.map(c => ({
+    time: c.time,
+    value: c.volume,
+    color: c.close >= c.open ? 'rgba(0,184,122,0.3)' : 'rgba(239,83,80,0.3)',
+  })));
+  ma20Series.setData(calcMA(candles, 20));
+  ma60Series.setData(calcMA(candles, 60));
+  applyChartViewport(candles, tfMinutes);
+}
+
+function normalizeRate(rate) {
+  const ts = parseTickTimestamp(rate?.time);
+  const open = Number(rate?.open);
+  const high = Number(rate?.high);
+  const low = Number(rate?.low);
+  const close = Number(rate?.close);
+  if (![ts, open, high, low, close].every(Number.isFinite)) return null;
+  return {
+    time: Math.floor(ts / 1000),
+    open,
+    high,
+    low,
+    close,
+    volume: Number(rate?.tick_volume ?? rate?.real_volume ?? rate?.volume) || 1,
+  };
+}
+
+async function fetchRatesHistory(config) {
+  const path = `/api/rates/${SYMBOL}?timeframe=${config.api}&count=${config.rateCount}`;
+  const data = await apiGet(path);
+  if (!data?.data?.rates?.length) return [];
+
+  return data.data.rates
+    .map(normalizeRate)
+    .filter(Boolean)
+    .sort((a, b) => a.time - b.time);
+}
+
+async function loadRatesHistory(config) {
+  document.getElementById('chart-watermark').style.display = 'block';
+  document.getElementById('chart-watermark').innerHTML =
+    `正在加载 MT5 ${config.label} K 线...<br><small>使用 MT5 原生 OHLC 数据</small>`;
+
+  const candles = await fetchRatesHistory(config);
+  if (candles.length < 2) return false;
+
+  cachedTicks = [];
+  setChartData(candles, config.minutes, config.label);
+  document.getElementById('chart-watermark').style.display = 'none';
+
+  const last = candles[candles.length - 1];
+  currentPrice = last.close;
+  updatePriceDisplay(currentPrice, currentPrice);
+  addDataStatus('success', `K线图已加载: MT5 ${config.api} · ${candles.length} 根K线`);
+  return true;
+}
+
+function latestValidTick(ticks) {
+  return ticks
+    .map(normalizeTick)
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts)
+    .at(-1);
+}
+
+async function fetchTickHistory(maxTicks = 60000) {
+  const allTicks = [];
+  const PAGE_SIZE = 10000;
+  const maxPages = Math.ceil(maxTicks / PAGE_SIZE);
+
+  for (let page = 0; page < maxPages; page++) {
+    const offset = page * PAGE_SIZE;
+    const data = await apiGet(`/api/tick-history/${SYMBOL}?limit=${PAGE_SIZE}&offset=${offset}`);
+    if (!data?.data?.ticks?.length) break;
+
+    allTicks.push(...data.data.ticks);
+    document.getElementById('chart-watermark').innerHTML =
+      `已加载 ${allTicks.length.toLocaleString()} 条 Tick (第 ${page + 1} 页)<br><small>来源: 本地 SQLite · 正在整理时间轴</small>`;
+
+    if (!data.data.has_more || allTicks.length >= maxTicks) break;
+  }
+
+  return allTicks
+    .map(normalizeTick)
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts)
+    .map(t => t.raw);
+}
+
+function updateLiveCandle(tick) {
+  const t = normalizeTick(tick);
+  if (!t || cachedCandles.length === 0) return;
+
+  const intervalMs = currentTimeframeMinutes * 60000;
+  const candleTime = Math.floor(t.ts / intervalMs) * intervalMs / 1000;
+  let last = cachedCandles[cachedCandles.length - 1];
+
+  if (candleTime < last.time) return;
+
+  if (candleTime > last.time) {
+    last = {
+      time: candleTime,
+      open: t.mid,
+      high: t.mid,
+      low: t.mid,
+      close: t.mid,
+      volume: t.volume,
+    };
+    cachedCandles.push(last);
+  } else {
+    last.high = Math.max(last.high, t.mid);
+    last.low = Math.min(last.low, t.mid);
+    last.close = t.mid;
+    last.volume += t.volume;
+  }
+
+  candleSeries.update(last);
+  volumeSeries.update({
+    time: last.time,
+    value: last.volume,
+    color: last.close >= last.open ? 'rgba(0,184,122,0.3)' : 'rgba(239,83,80,0.3)',
+  });
+  if (cachedCandles.length >= 20) ma20Series.setData(calcMA(cachedCandles, 20));
+  if (cachedCandles.length >= 60) ma60Series.setData(calcMA(cachedCandles, 60));
+}
+
+// ═══════════════════════════════════════════════════════════
+// API Calls
+// ═══════════════════════════════════════════════════════════
+async function apiGet(path) {
+  try {
+    const resp = await fetch(API_BASE + path, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function checkHealth() {
+  const data = await apiGet('/api/health');
+  if (!data || data.status !== 'ok') {
+    backendOnline = false;
+    mt5Connected = false;
+    updateTopBarStatus('offline', '后端离线', 'warn');
+    return;
+  }
+  backendOnline = true;
+  const d = data.data;
+  mt5Connected = d.mt5_connected;
+
+  if (mt5Connected) {
+    updateTopBarStatus('online', '● 已连接', 'green');
+    document.getElementById('top-account').textContent = d.mt5_account || '---';
+    document.getElementById('top-account').classList.remove('dim');
+    document.getElementById('top-server').textContent = d.mt5_server || '---';
+    document.getElementById('top-server').classList.remove('dim');
+  } else {
+    updateTopBarStatus('nomt5', '◉ 仅数据库', 'warn');
+    document.getElementById('top-account').textContent = 'MT5 未登录';
+    document.getElementById('top-server').textContent = '---';
+  }
+
+  addDataStatus('info', `后端已连接 (MT5: ${mt5Connected ? '在线' : '离线'}, Tick同步: ${d.tick_sync_running ? '运行中' : '已停止'}, Ticks: ${(d.tick_count_today || 0).toLocaleString()})`);
+}
+
+async function loadTickHistory() {
+  const config = TIMEFRAMES['5m'];
+  if (mt5Connected && await loadRatesHistory(config)) {
+    return;
+  }
+
+  document.getElementById('chart-watermark').style.display = 'block';
+  document.getElementById('chart-watermark').innerHTML =
+    '正在从 SQLite 加载历史 Tick...<br><small>MT5 K 线不可用时使用备用数据源</small>';
+
+  cachedTicks = await fetchTickHistory(60000);
+
+  if (cachedTicks.length === 0) {
+    document.getElementById('chart-watermark').innerHTML = '⚠ 无历史数据<br><small>请先运行 import_tickstory.py 导入数据</small>';
+    return;
+  }
+
+  document.getElementById('chart-watermark').innerHTML = `已加载 ${cachedTicks.length.toLocaleString()} 条 Tick<br><small>正在聚合 K 线...</small>`;
+
+  // Aggregate to M5 candles
+  const candles = aggregateTicksToOHLC(cachedTicks, 5);
+  if (candles.length < 2) {
+    document.getElementById('chart-watermark').innerHTML = '⚠ 数据不足<br><small>需要更多Tick数据来生成K线</small>';
+    return;
+  }
+
+  setChartData(candles, config.minutes, config.label);
+  document.getElementById('chart-watermark').style.display = 'none';
+
+  // Set current price from last tick
+  const lastTick = latestValidTick(cachedTicks);
+  if (lastTick) {
+    currentPrice = lastTick.mid;
+    updatePriceDisplay(currentPrice, currentPrice);
+  }
+
+  addDataStatus('success', `K线图已加载: SQLite ${cachedTicks.length.toLocaleString()} ticks → ${candles.length} 根 ${currentTimeframeLabel} K线`);
+}
+
+async function loadAccount() {
+  if (!mt5Connected) return;
+  const data = await apiGet('/api/account');
+  if (!data || data.status !== 'ok') return;
+  const a = data.data;
+
+  // Chart toolbar account items
+  document.getElementById('ch-balance').textContent = '$' + (a.balance?.toLocaleString() || '---');
+  document.getElementById('ch-equity').textContent = '$' + (a.equity?.toLocaleString() || '---');
+  document.getElementById('ch-equity').style.color = (a.profit || 0) >= 0 ? '#00b87a' : '#ef5350';
+  document.getElementById('ch-margin-free').textContent = '$' + (a.margin_free?.toLocaleString() || '---');
+  document.getElementById('ch-margin').textContent = '$' + (a.margin?.toFixed(0) || '---');
+  document.getElementById('ch-margin-level').textContent = (a.margin_level?.toFixed(0) || '---') + '%';
+  document.getElementById('ch-margin-level').style.color = (a.margin_level || 0) > 200 ? '#00b87a' : (a.margin_level || 0) > 100 ? 'var(--text-primary)' : '#ffa726';
+  document.getElementById('ch-leverage').textContent = (a.leverage || '---') + ':1';
+  const pfCh = a.profit || 0;
+  document.getElementById('ch-profit').textContent = (pfCh >= 0 ? '+' : '') + '$' + pfCh.toFixed(2);
+  document.getElementById('ch-profit').style.color = pfCh >= 0 ? '#00b87a' : '#ef5350';
+
+  // Aside: margin bar
+  const marginPct = a.equity > 0 ? Math.min(a.margin / a.equity * 100, 100) : 0;
+  document.getElementById('acct-margin-bar').style.width = marginPct + '%';
+}
+
+async function loadPositions() {
+  if (!mt5Connected) return;
+  const data = await apiGet('/api/positions');
+  if (!data || data.status !== 'ok') return;
+  const d = data.data;
+
+  // ---- 底部"交易"标签页 ----
+  document.getElementById('btm-pos-count').textContent = d.count + ' 个';
+  if (d.count === 0) {
+    document.getElementById('btm-pos-empty').style.display = 'flex';
+    document.getElementById('btm-positions-table').style.display = 'none';
+  } else {
+    document.getElementById('btm-pos-empty').style.display = 'none';
+    document.getElementById('btm-positions-table').style.display = '';
+    document.getElementById('btm-pos-tbody').innerHTML = d.positions.map(p => {
+      const digits = (p.symbol && p.symbol.includes('XAU')) ? 2 : 5;
+      return `
+      <tr>
+        <td style="font-weight:600">${p.symbol}</td>
+        <td><span class="position-badge ${p.type?.toLowerCase()}">${p.type === 'BUY' ? '买入' : '卖出'}</span></td>
+        <td>${(p.volume || 0).toFixed(2)}</td>
+        <td>${(p.price_open || 0).toFixed(digits)}</td>
+        <td>${(p.price_current || 0).toFixed(digits)}</td>
+        <td style="color:${(p.sl||0) > 0 ? 'var(--warning)' : 'var(--text-secondary)'}">${(p.sl||0) > 0 ? (p.sl||0).toFixed(digits) : '---'}</td>
+        <td style="color:${(p.tp||0) > 0 ? 'var(--green)' : 'var(--text-secondary)'}">${(p.tp||0) > 0 ? (p.tp||0).toFixed(digits) : '---'}</td>
+        <td style="color:${(p.profit||0) >= 0 ? 'var(--green)' : 'var(--red)'}">${(p.profit||0) >= 0 ? '+' : ''}$${(p.profit||0).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+async function loadPendingOrders() {
+  if (!mt5Connected) return;
+  const data = await apiGet('/api/pending-orders');
+  if (!data || data.status !== 'ok') return;
+  const d = data.data;
+
+  document.getElementById('btm-ord-count').textContent = d.count + ' 个';
+  if (d.count === 0) {
+    document.getElementById('btm-ord-empty').style.display = 'flex';
+    document.getElementById('btm-orders-table').style.display = 'none';
+    return;
+  }
+  document.getElementById('btm-ord-empty').style.display = 'none';
+  document.getElementById('btm-orders-table').style.display = '';
+  document.getElementById('btm-ord-tbody').innerHTML = d.orders.map(o => {
+    const digits = (o.symbol && o.symbol.includes('XAU')) ? 2 : 5;
+    const typeNames = { BUY_LIMIT: '买入限价', SELL_LIMIT: '卖出限价', BUY_STOP: '买入止损', SELL_STOP: '卖出止损', BUY_STOP_LIMIT: '买入止损限价', SELL_STOP_LIMIT: '卖出止损限价' };
+    const typeLabel = typeNames[o.type] || o.type;
+    const typeCls = o.type?.startsWith('BUY') ? 'buy' : 'sell';
+    const stateColors = { PLACED: 'var(--blue)', PARTIAL: 'var(--warning)', FILLED: 'var(--green)', CANCELED: 'var(--text-secondary)', REJECTED: 'var(--red)', EXPIRED: 'var(--text-secondary)' };
+    return `
+    <tr>
+      <td style="font-weight:600">${o.symbol}</td>
+      <td><span class="position-badge ${typeCls}">${typeLabel}</span></td>
+      <td>${(o.volume || 0).toFixed(2)}</td>
+      <td>${(o.price_open || 0).toFixed(digits)}</td>
+      <td style="color:${(o.sl||0) > 0 ? 'var(--warning)' : 'var(--text-secondary)'}">${(o.sl||0) > 0 ? (o.sl||0).toFixed(digits) : '---'}</td>
+      <td style="color:${(o.tp||0) > 0 ? 'var(--green)' : 'var(--text-secondary)'}">${(o.tp||0) > 0 ? (o.tp||0).toFixed(digits) : '---'}</td>
+      <td style="color:${stateColors[o.state] || 'var(--text-primary)'}">${o.state}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// WebSocket
+// ═══════════════════════════════════════════════════════════
+let wsTick = null;
+let wsEvents = null;
+
+function connectWebSocket() {
+  // Tick channel
+  try {
+    wsTick = new WebSocket(`${WS_BASE}/ws/ticks/${SYMBOL}`);
+    wsTick.onopen = () => addDataStatus('success', `WebSocket /ws/ticks/${SYMBOL} 已连接`);
+    wsTick.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'tick' && msg.data) {
+          const t = msg.data;
+          currentPrice = (t.bid + t.ask) / 2;
+          updatePriceDisplay(currentPrice, currentPrice);
+          updateLiveCandle(t);
+          updateServerClock(t.time);
+        }
+      } catch {}
+    };
+    wsTick.onclose = () => addDataStatus('warn', `WebSocket Tick 已断开，5秒后重连...`);
+    wsTick.onerror = () => {};
+  } catch (e) {
+    addDataStatus('warn', `WebSocket 连接失败: ${e.message}`);
+  }
+
+  // Events channel
+  try {
+    wsEvents = new WebSocket(`${WS_BASE}/ws/events`);
+    wsEvents.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type && msg.type !== 'connected') {
+          addAlert(msg.type, JSON.stringify(msg.data).substring(0, 200));
+        }
+      } catch {}
+    };
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI Updates
+// ═══════════════════════════════════════════════════════════
+function updateTopBarStatus(cls, text, colorClass) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'topbar-dot ' + cls;
+  const status = document.getElementById('top-status');
+  status.textContent = text;
+  status.className = 'topbar-value ' + colorClass;
+}
+
+function updatePriceDisplay(price, prevPrice) {
+  const el = document.getElementById('current-price');
+  const ch = document.getElementById('current-change');
+  if (!price) return;
+  el.textContent = price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const change = prevPrice ? price - prevPrice : 0;
+  el.className = 'chart-price ' + (change >= 0 ? 'up' : 'down');
+  ch.textContent = change !== 0 ? (change >= 0 ? '+' : '') + change.toFixed(2) : '---';
+  ch.className = 'chart-change ' + (change >= 0 ? 'up' : 'down');
+}
+
+function addDataStatus(level, msg) {
+  // 顶部栏：始终显示最新一条
+  const topEl = document.getElementById('top-data-status');
+  if (topEl) {
+    const colors = { error: '#ef5350', warn: '#ffa726', success: '#00b87a', info: '#787b86' };
+    topEl.style.color = colors[level] || colors.info;
+    topEl.textContent = msg;
+  }
+  // 底部列表：保留历史（切换到底部标签页时可见）
+  const list = document.getElementById('data-status-list');
+  if (list) {
+    list.insertAdjacentHTML('afterbegin', `<div class="alert-item ${level}"><span class="alert-msg">${msg}</span><span class="alert-time">${new Date().toLocaleTimeString()}</span></div>`);
+    if (list.children.length > 50) list.removeChild(list.lastChild);
+  }
+}
+
+function addAlert(type, msg) {
+  const list = document.getElementById('alerts-list');
+  let level = 'info';
+  if (type.includes('ERROR') || type.includes('REJECTED')) level = 'error';
+  else if (type.includes('WARN')) level = 'warn';
+  else if (type.includes('SUCCESS') || type.includes('FILLED')) level = 'success';
+  list.insertAdjacentHTML('afterbegin', `<div class="alert-item ${level}"><span class="alert-msg">[${type}] ${msg}</span><span class="alert-time">${new Date().toLocaleTimeString()}</span></div>`);
+  if (list.children.length > 50) list.removeChild(list.lastChild);
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' +
+    String(now.getDate()).padStart(2,'0') + ' ' +
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0');
+}
+
+const WEEKDAYS = ['周日','周一','周二','周三','周四','周五','周六'];
+let lastServerTime = '';
+
+function updateServerClock(timeStr) {
+  if (!timeStr || timeStr === lastServerTime) return;
+  lastServerTime = timeStr;
+  const d = new Date(timeStr.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return;
+  const el = document.getElementById('server-clock');
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  el.textContent = y + '-' + mo + '-' + da + ' ' + WEEKDAYS[d.getDay()] + ' ' + h + ':' + mi + ':' + s;
+  el.style.color = 'var(--text-primary)';
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab Switching
+// ═══════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-tab="${name}"]`)?.classList.add('active');
+  document.getElementById(`tab-${name}`)?.classList.add('active');
+}
+
+// Timeframe buttons
+document.querySelectorAll('.tf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const config = TIMEFRAMES[btn.dataset.tf] || TIMEFRAMES['5m'];
+    loadTickHistoryWithTF(config);
+  });
+});
+
+async function loadTickHistoryWithTF(config) {
+  document.getElementById('chart-watermark').style.display = 'block';
+  document.getElementById('chart-watermark').innerHTML = `正在切换到 ${config.label} 周期...`;
+
+  if (mt5Connected && await loadRatesHistory(config)) {
+    addDataStatus('info', `已切换周期: MT5 ${config.api} · ${cachedCandles.length} 根K线`);
+    return;
+  }
+
+  if (cachedTicks.length < 2) {
+    cachedTicks = await fetchTickHistory(60000);
+  }
+  if (cachedTicks.length < 2) return;
+
+  const candles = aggregateTicksToOHLC(cachedTicks, config.minutes);
+  if (candles.length < 2) return;
+
+  setChartData(candles, config.minutes, config.label);
+  document.getElementById('chart-watermark').style.display = 'none';
+  addDataStatus('info', `已切换周期: SQLite ${currentTimeframeLabel} · ${candles.length} 根K线`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // 1. Check backend health
+  document.getElementById('top-status').textContent = '◉ 检测中...';
+  await checkHealth();
+
+  if (backendOnline) {
+    // 2. Load historical data for chart
+    await loadTickHistory();
+
+    // 3. Load account & positions (works with MT5)
+    if (mt5Connected) {
+      await loadAccount();
+      await loadPositions();
+      await loadPendingOrders();
+      document.getElementById('trade-panel').style.display = '';
+      recalcTrade();
+    } else {
+      addDataStatus('info', 'MT5未连接 — 账户/持仓数据不可用。请打开MT5 Terminal并登录。');
+    }
+
+    // 4. Load ATR stats
+    await refreshAtr();
+
+    // 4.5. Fetch initial server time
+    if (mt5Connected) { try { const tick = await apiGet(`/api/tick/${SYMBOL}`); if (tick?.data?.time) updateServerClock(tick.data.time); } catch(e) {} }
+
+    // 5. Connect WebSocket
+    connectWebSocket();
+
+    // 6. Periodic refresh
+    setInterval(async () => {
+      await checkHealth();
+      if (mt5Connected) {
+        await loadAccount();
+        await loadPositions();
+        await loadPendingOrders();
+      }
+    }, 5000);
+
+    // ATR refresh every 10 seconds
+    setInterval(refreshAtr, 10000);
+
+  } else {
+    document.getElementById('chart-watermark').innerHTML =
+      '⚠ 后端离线<br><small>请先启动 FastAPI: python run.py</small>';
+    addDataStatus('error', '无法连接后端 — 请确认 python run.py 已启动');
+    // Retry every 5s
+    setInterval(checkHealth, 5000);
+  }
+}
+
+  let atrData = null;
+
+async function refreshAtr() {
+  if (!backendOnline) return;
+  const data = await apiGet(`/api/atr-stats/${SYMBOL}?tf=${currentTimeframeLabel}`);
+  if (!data || data.status !== 'ok') return;
+  atrData = data.data;
+  renderAtrOverlay();
+  recalcTrade();
+}
+
+let selectedAtrTf = currentTimeframeLabel;  // 用户点击选中的 ATR 周期
+
+function renderAtrOverlay() {
+  if (!atrData || !atrData.table) return;
+  const compactRow = document.getElementById('atr-compact-row');
+  const fullTable = document.getElementById('atr-full-table');
+  const tbody = document.getElementById('atr-tbody');
+
+  // 按 selectedAtrTf 找对应行，找不到就用第一个
+  var sel = atrData.table.find(function(r) { return r.timeframe === selectedAtrTf; }) || atrData.table[0];
+
+  compactRow.innerHTML = [
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">周期</span><span class="atr-compact-val" style="color:#fff;font-size:15px;font-weight:800">' + sel.timeframe + '</span></div>',
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">ATR1</span><span class="atr-compact-val" style="color:#00BFFF;font-size:14px">' + sel.atr1 + '</span></div>',
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">ATR5</span><span class="atr-compact-val" style="color:#32CD32;font-size:14px">' + sel.atr5 + '</span></div>',
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">ATR50</span><span class="atr-compact-val" style="color:#FF6347;font-size:14px">' + sel.atr50 + '</span></div>',
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">1/5</span><span class="atr-compact-val" style="color:' + sel.r15_color + ';font-size:14px">' + sel.r15 + ' ' + sel.r15_arrow + '</span></div>',
+    '<div class="atr-compact-item"><span class="atr-compact-label" style="font-size:10px">5/50</span><span class="atr-compact-val" style="color:' + sel.r550_color + ';font-size:14px">' + sel.r550 + ' ' + sel.r550_arrow + '</span></div>',
+    '<span style="font-size:13px;padding:2px 8px;border-radius:3px;font-weight:700;background:' + sel.state_color + '22;color:' + sel.state_color + ';border:1px solid ' + sel.state_color + '44">' + sel.state + '</span>'
+  ].join('');
+
+  var rows = '';
+  for (var i = 0; i < atrData.table.length; i++) {
+    var r = atrData.table[i];
+    var isSel = r.timeframe === selectedAtrTf;
+    rows += '<tr class="' + (isSel ? 'atr-row-sel' : '') + '" onclick="selectAtrRow(\'' + r.timeframe + '\')" style="cursor:pointer">' +
+      '<td style="color:' + (isSel ? '#fff' : 'var(--text-primary)') + '">' + r.timeframe + '</td>' +
+      '<td style="color:#00BFFF">' + r.atr1 + '</td>' +
+      '<td style="color:#32CD32">' + r.atr5 + '</td>' +
+      '<td style="color:#FF6347">' + r.atr50 + '</td>' +
+      '<td style="color:' + r.r15_color + '">' + r.r15 + ' ' + r.r15_arrow + '</td>' +
+      '<td style="color:' + r.r550_color + '">' + r.r550 + ' ' + r.r550_arrow + '</td>' +
+      '<td style="color:' + r.r150_color + '">' + r.r150 + ' ' + r.r150_arrow + '</td>' +
+      '<td><span style="padding:2px 6px;border-radius:2px;font-size:12px;font-weight:700;background:' + r.state_color + '22;color:' + r.state_color + '">' + r.state + '</span></td>' +
+      '</tr>';
+  }
+  tbody.innerHTML = rows;
+  fullTable.style.display = '';
+}
+
+function selectAtrRow(tf) {
+  selectedAtrTf = tf;
+  // 重新渲染 overlay 以更新顶部收缩行和表格高亮
+  renderAtrOverlay();
+  // 同步更新交易区周期标签
+  document.getElementById('trade-tf-label').textContent = ' · ' + tf;
+  addDataStatus('info', 'ATR 选中周期: ' + tf);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Trading Controls
+// ═══════════════════════════════════════════════════════════
+let protectArmed = false;
+let trailArmed = false;
+
+function getTradeAtr5() {
+  if (!atrData || !atrData.table) return 0;
+  var row = atrData.table.find(function(r) { return r.selected; }) || atrData.table[0];
+  return row.atr5;
+}
+
+function getSymbolPoint() {
+  if (SYMBOL.indexOf('XAU') >= 0 || SYMBOL.indexOf('GOLD') >= 0) return 0.01;
+  if (SYMBOL.indexOf('JPY') >= 0) return 0.001;
+  return 0.0001;
+}
+
+function recalcTrade() {
+  var atr5 = getTradeAtr5();
+  if (atr5 <= 0) { document.getElementById('trade-lots').textContent = '---'; return; }
+  var slMult = parseFloat(document.getElementById('trade-sl-mult').value) || 1.5;
+  var tpMult = parseFloat(document.getElementById('trade-tp-mult').value) || 2.0;
+  var riskPct = parseFloat(document.getElementById('trade-risk-pct').value) || 1.0;
+  var point = getSymbolPoint();
+  var slPoints = atr5 * slMult / point;
+  var tpPoints = atr5 * tpMult / point;
+  document.getElementById('trade-sl-points').textContent = slPoints.toFixed(0) + ' 点';
+  document.getElementById('trade-tp-points').textContent = tpPoints.toFixed(0) + ' 点';
+  var equity = 10000;
+  var riskAmount = equity * riskPct / 100;
+  document.getElementById('trade-risk-amt').value = riskAmount.toFixed(2);
+  var pipValue = SYMBOL.indexOf('XAU') >= 0 ? 1.0 : 10.0;
+  var lots = 0;
+  if (slPoints > 0) { lots = Math.floor(riskAmount / (slPoints * pipValue * 0.01) * 100) / 100; }
+  document.getElementById('trade-lots').textContent = lots > 0 ? lots.toFixed(2) + ' 手' : '---';
+  document.getElementById('trade-tf-label').textContent = ' · ' + selectedAtrTf;
+}
+
+function toggleProtect() {
+  protectArmed = !protectArmed;
+  var btn = document.getElementById('btn-protect');
+  btn.textContent = protectArmed ? '推保护 ON' : '推保护 OFF';
+  btn.className = 'trade-toggle-btn' + (protectArmed ? ' armed' : '');
+  addDataStatus('info', protectArmed ? '推保护已开启' : '推保护已关闭');
+}
+
+function toggleTrail() {
+  trailArmed = !trailArmed;
+  var btn = document.getElementById('btn-trail');
+  btn.textContent = trailArmed ? '追踪止损 ON' : '追踪止损 OFF';
+  btn.className = 'trade-toggle-btn' + (trailArmed ? ' armed' : '');
+  addDataStatus('info', trailArmed ? '追踪止损已开启' : '追踪止损已关闭');
+}
+
+function tradeAction(action) {
+  if (action === 'APPLY') { recalcTrade(); addDataStatus('success', '参数已应用'); return; }
+  if (action === 'CLOSE') { addDataStatus('warn', '平仓请求 — 需接入 MT5 order_send 接口（阶段5）'); return; }
+  recalcTrade();
+  var atr5 = getTradeAtr5();
+  var slMult = parseFloat(document.getElementById('trade-sl-mult').value) || 1.5;
+  var tpMult = parseFloat(document.getElementById('trade-tp-mult').value) || 2.0;
+  var lots = document.getElementById('trade-lots').textContent.replace(' 手', '');
+  addDataStatus('info', action + ' 参数: 手数' + lots + ' SLx' + slMult + ' TPx' + tpMult + ' — 需接入 order 接口');
+}
+
+  init();</script>
+</body>
+</html>
