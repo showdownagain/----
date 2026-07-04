@@ -190,6 +190,24 @@ table.positions tr:hover td { background: var(--bg-hover); }
 .alert-msg { flex: 1; font-size: 13px; color: var(--text-primary); }
 .alert-time { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
 
+/* ===== Strategy Cards ===== */
+.strategy-card { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; min-width: 240px; flex: 0 0 auto; }
+.strategy-card.running { border-color: var(--green); }
+.strategy-card.stopped { opacity: 0.7; }
+.strategy-card h4 { font-size: 14px; color: var(--text-white); margin-bottom: 6px; }
+.strategy-card .sc-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+.strategy-card .sc-params { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); margin-bottom: 8px; }
+.strategy-card .sc-stats { font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; display: flex; gap: 10px; }
+.strategy-card .sc-stat-val { color: var(--text-primary); font-weight: 600; }
+.strategy-card .sc-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+.sc-badge.green { background: var(--green-bg); color: var(--green); }
+.sc-badge.yellow { background: var(--warning-bg); color: var(--warning); }
+.sc-badge.gray { background: var(--bg-hover); color: var(--text-secondary); }
+.sc-btn { padding: 4px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-size: 12px; margin-right: 4px; }
+.sc-btn:hover { background: var(--bg-hover); }
+.sc-btn.start { border-color: var(--green); color: var(--green); }
+.sc-btn.stop { border-color: var(--red); color: var(--red); }
+
 /* ===== ATR Overlay Panel ===== */
 #atr-overlay {
   position: absolute; top: 8px; left: 8px; z-index: 20;
@@ -312,6 +330,7 @@ table.positions tr:hover td { background: var(--bg-hover); }
         保证金率 <b id="ch-margin-level" style="color:var(--text-primary)">---</b>
         杠杆 <b id="ch-leverage" style="color:var(--text-primary)">---</b>
         浮动 <b id="ch-profit" style="color:var(--text-primary)">---</b>
+        当日 <b id="ch-daily-pnl" style="color:var(--text-primary)">---</b>
       </span>
       <span style="flex:1"></span>
       <button class="tf-btn" data-tf="1m">1m</button>
@@ -381,8 +400,12 @@ table.positions tr:hover td { background: var(--bg-hover); }
       <div class="trade-btns">
         <button class="trade-btn buy" onclick="tradeAction('BUY')">▲ BUY</button>
         <button class="trade-btn sell" onclick="tradeAction('SELL')">▼ SELL</button>
-        <button class="trade-btn close" onclick="tradeAction('CLOSE')">平仓</button>
+        <button class="trade-btn close" onclick="tradeAction('CLOSE_BUY')" style="background:#2962ff;border-color:#2962ff">多单平仓</button>
+        <button class="trade-btn close" onclick="tradeAction('CLOSE_SELL')" style="background:#ef5350;border-color:#ef5350">空单平仓</button>
         <button class="trade-btn apply" onclick="tradeAction('APPLY')">应用参数</button>
+        <div style="margin-top:6px;font-size:11px;color:var(--text-secondary)">挂单倍数 <input id="trade-pending-mult" type="number" value="2.0" step="0.1" min="1.0" style="width:50px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:2px 6px;border-radius:3px;font-size:12px"></div>
+        <button class="trade-btn" onclick="tradeAction('REVERSE')" style="background:#d2691e;border-color:#d2691e;color:#fff;margin-top:4px">反打挂单</button>
+        <button class="trade-btn" onclick="(async function(){addDataStatus('info','正在删除所有挂单...');var r=await apiPost('/api/pending/delete-all',{symbol:currentSymbol});if(r&&r.status==='ok'){var n=r.data.deleted||0;addDataStatus('success','已删除 '+n+' 个挂单');await loadPendingOrders();}else{addDataStatus('error','删除失败: '+(r?.detail||'后端无响应'));}})()" style="background:#555;border-color:#555;color:#fff;margin-top:4px">删除所有挂单</button>
       </div>
       <div class="trade-toggle">
         <span class="tlabel" style="flex:1">推保护</span>
@@ -405,6 +428,9 @@ table.positions tr:hover td { background: var(--bg-hover); }
   <div id="bottom">
     <div class="bottom-tabs">
       <button class="bottom-tab active" data-tab="trading" onclick="switchTab('trading')">交易</button>
+      <button class="bottom-tab" data-tab="signals" onclick="switchTab('signals')">策略信号</button>
+      <button class="bottom-tab" data-tab="strategies" onclick="switchTab('strategies')">策略引擎</button>
+      <button class="bottom-tab" data-tab="orders" onclick="switchTab('orders')">订单记录</button>
       <button class="bottom-tab" data-tab="alerts" onclick="switchTab('alerts')">系统日志</button>
     </div>
     <div class="bottom-content active" id="tab-trading">
@@ -414,7 +440,7 @@ table.positions tr:hover td { background: var(--bg-hover); }
           <div style="overflow-y:auto;flex:1" id="btm-pos-wrap">
             <div class="empty-state" id="btm-pos-empty"><div>暂无持仓</div></div>
             <table class="positions" id="btm-positions-table" style="display:none;width:100%">
-              <thead><tr><th>品种</th><th>方向</th><th>手数</th><th>开仓价</th><th>当前价</th><th>止损</th><th>止盈</th><th>盈亏</th></tr></thead>
+              <thead><tr><th>品种</th><th>方向</th><th>手数</th><th>开仓价</th><th>当前价</th><th>止损</th><th>止盈</th><th>盈亏</th><th>操作</th></tr></thead>
               <tbody id="btm-pos-tbody"></tbody>
             </table>
           </div>
@@ -429,6 +455,41 @@ table.positions tr:hover td { background: var(--bg-hover); }
               <tbody id="btm-ord-tbody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-content" id="tab-signals">
+      <div style="overflow-y:auto;flex:1;padding:12px 16px" id="signals-wrap">
+        <table class="positions" style="width:100%">
+          <thead><tr><th>时间</th><th>品种</th><th>周期</th><th>策略</th><th>信号</th><th>价格</th><th>置信度</th><th>原因</th></tr></thead>
+          <tbody id="signals-tbody"><tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:24px">等待信号数据...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bottom-content" id="tab-strategies">
+      <div style="overflow-y:auto;flex:1;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-content:flex-start" id="strategies-wrap">
+        <div style="color:var(--text-secondary);text-align:center;padding:24px;width:100%">加载策略列表...</div>
+      </div>
+    </div>
+    <div class="bottom-content" id="tab-orders" style="padding:0">
+      <div style="display:flex;border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0">
+        <button class="bottom-tab active" data-subtab="orders-close" onclick="switchOrdersTab('close')">平仓记录</button>
+        <button class="bottom-tab" data-subtab="orders-open" onclick="switchOrdersTab('open')">开仓记录</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;padding:12px 16px" id="orders-tab-wrap">
+        <!-- 平仓 -->
+        <div id="orders-close-panel">
+          <table class="positions" style="width:100%">
+            <thead><tr><th>时间</th><th>北京时间</th><th>品种</th><th>方向</th><th>手数</th><th>盈亏</th><th>备注</th></tr></thead>
+            <tbody id="orders-close-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">---</td></tr></tbody>
+          </table>
+        </div>
+        <!-- 开仓 -->
+        <div id="orders-open-panel" style="display:none">
+          <table class="positions" style="width:100%">
+            <thead><tr><th>时间</th><th>北京时间</th><th>品种</th><th>方向</th><th>手数</th><th>备注</th></tr></thead>
+            <tbody id="orders-open-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">---</td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -448,11 +509,17 @@ table.positions tr:hover td { background: var(--bg-hover); }
 const API_BASE = 'http://127.0.0.1:8000';
 const WS_BASE  = 'ws://127.0.0.1:8000';
 const SYMBOL   = 'XAUUSD';
+let currentSymbol = SYMBOL;
+let accountEquity = null;
+let todayClosedPnL = 0;
+let positionsCache = [];  // 持仓缓存，用于客户端实时计算盈亏
 let backendOnline = false;
 let mt5Connected = false;
 let currentPrice = null;
+let prevPrice = null;
 let cachedTicks = [];
 let cachedCandles = [];
+let priceLines = [];  // 持仓止盈止损线
 let currentTimeframeMinutes = 5;
 let currentTimeframeLabel = '5m';
 
@@ -512,6 +579,115 @@ volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } 
 // MA lines
 const ma20Series = chart.addLineSeries({ color: '#ffa726', lineWidth: 1.5, priceLineVisible: false });
 const ma60Series = chart.addLineSeries({ color: '#7e57c2', lineWidth: 1.5, priceLineVisible: false });
+
+// ═══════════════════════════════════════════════════════════
+// Trading Session Background Shading
+// 黄金三大交易时段 (UTC时间)
+//   亚洲盘: 00:00-09:00 UTC → 蓝色
+//   欧洲盘: 08:00-17:00 UTC → 琥珀色
+//   美洲盘: 13:00-22:00 UTC → 紫色
+//   重叠段(欧+美): 13:00-17:00 UTC → 叠加色, 最活跃时段
+// ═══════════════════════════════════════════════════════════
+const TRADING_SESSIONS = [
+  { name: '亚洲', startH: 0,  endH: 9,  color: 'rgba(41, 98, 255, 0.07)' },
+  { name: '欧洲', startH: 8,  endH: 17, color: 'rgba(255, 167, 38, 0.07)' },
+  { name: '美洲', startH: 13, endH: 22, color: 'rgba(156, 39, 176, 0.07)' },
+];
+
+class TradingSessionBg {
+  constructor(chart, series) {
+    this._chart = chart;
+    this._series = series;
+  }
+
+  paneView() {
+    return {
+      renderer: () => ({
+        drawBackground: (target) => { this._draw(target); },
+        draw: () => {},
+      }),
+    };
+  }
+
+  _draw(target) {
+    const ts = this._chart.timeScale();
+    const w = target.mediaSize.width;
+    const h = target.mediaSize.height;
+
+    // 通过画布边缘坐标反查可见时间范围 (media坐标空间)
+    const fromSec = ts.coordinateToTime(-2);
+    const toSec = ts.coordinateToTime(w + 2);
+    if (fromSec === null || toSec === null) return;
+
+    // 计算可见的UTC日期范围 ±1天缓冲
+    const start = new Date(Date.UTC(
+      new Date(fromSec * 1000).getUTCFullYear(),
+      new Date(fromSec * 1000).getUTCMonth(),
+      new Date(fromSec * 1000).getUTCDate() - 1
+    ));
+    const end = new Date(Date.UTC(
+      new Date(toSec * 1000).getUTCFullYear(),
+      new Date(toSec * 1000).getUTCMonth(),
+      new Date(toSec * 1000).getUTCDate() + 1
+    ));
+
+    const ctx = target.context;
+    ctx.save();
+    try {
+      target.useMediaCoordinateSpace(() => {
+        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+          // 跳过周末 (周六=6, 周日=0)
+          const dow = d.getUTCDay();
+          if (dow === 0 || dow === 6) continue;
+
+          const Y = d.getUTCFullYear();
+          const M = d.getUTCMonth();
+          const D = d.getUTCDate();
+
+          for (const s of TRADING_SESSIONS) {
+            const t1 = Date.UTC(Y, M, D, s.startH, 0, 0) / 1000;
+            const t2 = Date.UTC(Y, M, D, s.endH, 0, 0) / 1000;
+
+            const x1 = ts.timeToCoordinate(t1);
+            const x2 = ts.timeToCoordinate(t2);
+
+            if (x1 === null && x2 === null) continue;
+            const left = x1 !== null ? Math.max(-1, x1) : -1;
+            const right = x2 !== null ? Math.min(w + 1, x2) : w + 1;
+            if (right - left < 2) continue;
+
+            ctx.fillStyle = s.color;
+            ctx.fillRect(left, -1, right - left, h + 2);
+          }
+        }
+      });
+    } finally {
+      ctx.restore();
+    }
+  }
+}
+
+const sessionBg = new TradingSessionBg(chart, candleSeries);
+candleSeries.attachPrimitive(sessionBg);
+
+// 交易时段图例 (显示在图表右下角)
+function updateSessionLegend() {
+  let el = document.getElementById('session-legend');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'session-legend';
+    el.style.cssText =
+      'position:absolute;bottom:46px;right:12px;z-index:5;display:flex;gap:10px;' +
+      'width:auto;height:auto;font-size:10px;font-family:var(--font-ui);pointer-events:none;user-select:none;';
+    document.querySelector('.chart-container').appendChild(el);
+  }
+  el.innerHTML = TRADING_SESSIONS.map(s =>
+    '<span style="display:inline-flex;align-items:center;gap:3px;color:var(--text-secondary)">' +
+    '<span style="width:12px;height:8px;border-radius:2px;background:' + s.color.replace('0.07', '0.35') + ';display:inline-block;"></span>' +
+    s.name + '</span>'
+  ).join('');
+}
+updateSessionLegend();
 
 function resizeChart() {
   const rect = chartEl.getBoundingClientRect();
@@ -780,6 +956,28 @@ async function apiGet(path) {
   }
 }
 
+async function apiPost(path, body) {
+  try {
+    const resp = await fetch(API_BASE + path, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body || {}), signal: AbortSignal.timeout(5000)
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) { return null; }
+}
+
+async function apiPatch(path, body) {
+  try {
+    const resp = await fetch(API_BASE + path, {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body || {}), signal: AbortSignal.timeout(5000)
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) { return null; }
+}
+
 async function checkHealth() {
   const data = await apiGet('/api/health');
   if (!data || data.status !== 'ok') {
@@ -846,11 +1044,43 @@ async function loadTickHistory() {
   addDataStatus('success', `K线图已加载: SQLite ${cachedTicks.length.toLocaleString()} ticks → ${candles.length} 根 ${currentTimeframeLabel} K线`);
 }
 
+// 客户端实时盈亏计算（每Tick更新，与MT5刷新频率一致）
+function updatePositionPnL(tickSymbol, tickPrice) {
+  if (positionsCache.length === 0 || !tickPrice) return;
+  var totalProfit = 0;
+  positionsCache.forEach(function(p) {
+    var pSym = (p.symbol || '').toUpperCase();
+    var tSym = (tickSymbol || '').toUpperCase();
+    if (pSym !== tSym && pSym !== tSym.replace('.C','')) return;
+
+    var digits = pSym.indexOf('XAU') >= 0 ? 2 : 5;
+    var contractSize = pSym.indexOf('XAU') >= 0 ? 100 : 100000;
+    var profit = (p.type === 'BUY')
+      ? (tickPrice - p.price_open) * p.volume * contractSize
+      : (p.price_open - tickPrice) * p.volume * contractSize;
+
+    // 更新DOM: 当前价 + 盈亏
+    var row = document.getElementById('pos-row-' + p.ticket);
+    if (row) {
+      var pc = row.querySelector('.pos-cur-price');
+      if (pc) pc.textContent = tickPrice.toFixed(digits);
+      var pn = row.querySelector('.pos-pnl');
+      if (pn) {
+        pn.textContent = (profit >= 0 ? '+' : '') + '$' + profit.toFixed(2);
+        pn.style.color = profit >= 0 ? '#00b87a' : '#ef5350';
+      }
+    }
+  });
+}
+
 async function loadAccount() {
   if (!mt5Connected) return;
   const data = await apiGet('/api/account');
   if (!data || data.status !== 'ok') return;
   const a = data.data;
+
+  // 更新账户净值（用于风控计算）
+  accountEquity = a.equity || null;
 
   // Chart toolbar account items
   document.getElementById('ch-balance').textContent = '$' + (a.balance?.toLocaleString() || '---');
@@ -865,9 +1095,55 @@ async function loadAccount() {
   document.getElementById('ch-profit').textContent = (pfCh >= 0 ? '+' : '') + '$' + pfCh.toFixed(2);
   document.getElementById('ch-profit').style.color = pfCh >= 0 ? '#00b87a' : '#ef5350';
 
+  // 当日盈亏
+  var dailyPnL = a.daily_total_pnl || 0;
+  document.getElementById('ch-daily-pnl').textContent = (dailyPnL >= 0 ? '+' : '') + '$' + dailyPnL.toFixed(2);
+  document.getElementById('ch-daily-pnl').style.color = dailyPnL >= 0 ? '#00b87a' : '#ef5350';
+
   // Aside: margin bar
   const marginPct = a.equity > 0 ? Math.min(a.margin / a.equity * 100, 100) : 0;
   document.getElementById('acct-margin-bar').style.width = marginPct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 持仓止盈止损线（标签在图表中间）
+// ═══════════════════════════════════════════════════════════
+function updatePositionLines(positions) {
+  // 清除旧线
+  priceLines.forEach(function(line) {
+    try { candleSeries.removePriceLine(line); } catch(e) {}
+  });
+  priceLines = [];
+
+  if (!positions || positions.length === 0) return;
+  if (!candleSeries) return;
+
+  positions.forEach(function(p) {
+    if (!currentSymbol || !p.symbol ||
+        p.symbol.toUpperCase().indexOf(currentSymbol.toUpperCase()) < 0) return;
+
+    // 止损线 — 红色
+    if ((p.sl || 0) > 0) {
+      priceLines.push(candleSeries.createPriceLine({
+        price: p.sl, color: '#ef5350', lineWidth: 2, lineStyle: 2,
+        axisLabelVisible: true, title: '止损',
+      }));
+    }
+    // 止盈线 — 绿色
+    if ((p.tp || 0) > 0) {
+      priceLines.push(candleSeries.createPriceLine({
+        price: p.tp, color: '#00b87a', lineWidth: 2, lineStyle: 2,
+        axisLabelVisible: true, title: '止盈',
+      }));
+    }
+    // 开仓价 — 橙色
+    if ((p.price_open || 0) > 0) {
+      priceLines.push(candleSeries.createPriceLine({
+        price: p.price_open, color: '#ffa726', lineWidth: 2, lineStyle: 2,
+        axisLabelVisible: true, title: '开仓',
+      }));
+    }
+  });
 }
 
 async function loadPositions() {
@@ -875,6 +1151,8 @@ async function loadPositions() {
   const data = await apiGet('/api/positions');
   if (!data || data.status !== 'ok') return;
   const d = data.data;
+  // 更新缓存（用于客户端实时计算盈亏）
+  positionsCache = d.positions || [];
 
   // ---- 底部"交易"标签页 ----
   document.getElementById('btm-pos-count').textContent = d.count + ' 个';
@@ -887,18 +1165,22 @@ async function loadPositions() {
     document.getElementById('btm-pos-tbody').innerHTML = d.positions.map(p => {
       const digits = (p.symbol && p.symbol.includes('XAU')) ? 2 : 5;
       return `
-      <tr>
+      <tr id="pos-row-${p.ticket}">
         <td style="font-weight:600">${p.symbol}</td>
         <td><span class="position-badge ${p.type?.toLowerCase()}">${p.type === 'BUY' ? '买入' : '卖出'}</span></td>
         <td>${(p.volume || 0).toFixed(2)}</td>
         <td>${(p.price_open || 0).toFixed(digits)}</td>
-        <td>${(p.price_current || 0).toFixed(digits)}</td>
+        <td class="pos-cur-price">${(p.price_current || 0).toFixed(digits)}</td>
         <td style="color:${(p.sl||0) > 0 ? 'var(--warning)' : 'var(--text-secondary)'}">${(p.sl||0) > 0 ? (p.sl||0).toFixed(digits) : '---'}</td>
         <td style="color:${(p.tp||0) > 0 ? 'var(--green)' : 'var(--text-secondary)'}">${(p.tp||0) > 0 ? (p.tp||0).toFixed(digits) : '---'}</td>
-        <td style="color:${(p.profit||0) >= 0 ? 'var(--green)' : 'var(--red)'}">${(p.profit||0) >= 0 ? '+' : ''}$${(p.profit||0).toFixed(2)}</td>
+        <td class="pos-pnl" style="color:${(p.profit||0) >= 0 ? 'var(--green)' : 'var(--red)'}">${(p.profit||0) >= 0 ? '+' : ''}$${(p.profit||0).toFixed(2)}</td>
+        <td><button onclick="closePositionByTicket(${p.ticket})" style="padding:2px 8px;font-size:11px;background:#ef5350;color:#fff;border:none;border-radius:3px;cursor:pointer">平仓</button></td>
       </tr>`;
     }).join('');
   }
+
+  // 更新图表上的止盈止损线
+  updatePositionLines(d.positions);
 }
 
 async function loadPendingOrders() {
@@ -943,6 +1225,7 @@ let wsEvents = null;
 function connectWebSocket() {
   // Tick channel
   try {
+    if (wsTick) { wsTick.onclose = null; try { wsTick.close(); } catch(e){} }
     wsTick = new WebSocket(`${WS_BASE}/ws/ticks/${SYMBOL}`);
     wsTick.onopen = () => addDataStatus('success', `WebSocket /ws/ticks/${SYMBOL} 已连接`);
     wsTick.onmessage = (e) => {
@@ -950,31 +1233,70 @@ function connectWebSocket() {
         const msg = JSON.parse(e.data);
         if (msg.type === 'tick' && msg.data) {
           const t = msg.data;
+          prevPrice = currentPrice;
           currentPrice = (t.bid + t.ask) / 2;
-          updatePriceDisplay(currentPrice, currentPrice);
+          updatePriceDisplay(currentPrice, prevPrice);
           updateLiveCandle(t);
           updateServerClock(t.time);
+          updatePositionPnL(t.symbol, currentPrice);
         }
-      } catch {}
+      } catch(err) { console.error('WS tick error:', err); }
     };
-    wsTick.onclose = () => addDataStatus('warn', `WebSocket Tick 已断开，5秒后重连...`);
-    wsTick.onerror = () => {};
+    wsTick.onclose = () => {
+      addDataStatus('warn', `WebSocket Tick 已断开，5秒后重连...`);
+      setTimeout(connectTickWS, 5000);
+    };
+    wsTick.onerror = (e) => { console.error('WS tick error event:', e); };
   } catch (e) {
     addDataStatus('warn', `WebSocket 连接失败: ${e.message}`);
+    setTimeout(connectTickWS, 5000);
   }
 
   // Events channel
+  connectEventsWS();
+}
+
+function connectTickWS() {
+  if (wsTick) { wsTick.onclose = null; try { wsTick.close(); } catch(e){} }
+  try {
+    wsTick = new WebSocket(`${WS_BASE}/ws/ticks/${SYMBOL}`);
+    wsTick.onopen = () => addDataStatus('success', `WebSocket /ws/ticks/${SYMBOL} 已连接`);
+    wsTick.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'tick' && msg.data) {
+          const t = msg.data;
+          prevPrice = currentPrice;
+          currentPrice = (t.bid + t.ask) / 2;
+          updatePriceDisplay(currentPrice, prevPrice);
+          updateLiveCandle(t);
+          updateServerClock(t.time);
+          updatePositionPnL(t.symbol, currentPrice);
+        }
+      } catch(err) { console.error('WS tick error:', err); }
+    };
+    wsTick.onclose = () => { addDataStatus('warn', 'WebSocket Tick 断开，5秒后重连...'); setTimeout(connectTickWS, 5000); };
+    wsTick.onerror = (e) => { console.error('WS tick error:', e); };
+  } catch(e) { setTimeout(connectTickWS, 5000); }
+}
+
+function connectEventsWS() {
+  if (wsEvents) { wsEvents.onclose = null; try { wsEvents.close(); } catch(e){} }
   try {
     wsEvents = new WebSocket(`${WS_BASE}/ws/events`);
+    wsEvents.onopen = () => addDataStatus('success', 'WebSocket /ws/events 已连接');
     wsEvents.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type && msg.type !== 'connected') {
-          addAlert(msg.type, JSON.stringify(msg.data).substring(0, 200));
-        }
-      } catch {}
+        if (!msg.type || msg.type === 'connected') return;
+        addAlert(msg.type, JSON.stringify(msg.data).substring(0, 200));
+        if (msg.type === 'STRATEGY_SIGNAL') { loadSignals(); loadStrategies(); }
+        if (msg.type === 'ORDER_CHECK_RESULT') { loadOrders(); }
+        if (msg.type === 'STRATEGY_STARTED' || msg.type === 'STRATEGY_STOPPED') { loadStrategies(); }
+      } catch(err) { console.error('WS events error:', err); }
     };
-  } catch {}
+    wsEvents.onclose = () => { setTimeout(connectEventsWS, 5000); };
+  } catch(e) { setTimeout(connectEventsWS, 5000); }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1041,17 +1363,19 @@ let lastServerTime = '';
 function updateServerClock(timeStr) {
   if (!timeStr || timeStr === lastServerTime) return;
   lastServerTime = timeStr;
-  const d = new Date(timeStr.replace(' ', 'T'));
+  // 解析为 UTC+2 服务器时间
+  const d = new Date(timeStr.replace(' ', 'T') + '+02:00');
   if (isNaN(d.getTime())) return;
   const el = document.getElementById('server-clock');
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const da = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  el.textContent = y + '-' + mo + '-' + da + ' ' + WEEKDAYS[d.getDay()] + ' ' + h + ':' + mi + ':' + s;
-  el.style.color = 'var(--text-primary)';
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const da = String(d.getUTCDate()).padStart(2, '0');
+  // UTC+2 = UTC + 2h
+  const h = String((d.getUTCHours() + 2 + 24) % 24).padStart(2, '0');
+  const mi = String(d.getUTCMinutes()).padStart(2, '0');
+  const s = String(d.getUTCSeconds()).padStart(2, '0');
+  el.textContent = y + '-' + mo + '-' + da + ' ' + WEEKDAYS[(d.getUTCDay() + (d.getUTCHours() + 2 >= 24 ? 1 : 0)) % 7] + ' ' + h + ':' + mi + ':' + s;
+  el.style.color = '#00BFFF';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1097,6 +1421,173 @@ async function loadTickHistoryWithTF(config) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Strategy / Signal / Alert / Order Loaders
+// ═══════════════════════════════════════════════════════════
+
+async function loadStrategies() {
+  if (!backendOnline) return;
+  const data = await apiGet('/api/strategies');
+  if (!data || data.status !== 'ok') return;
+  const list = data.data.strategies || [];
+  var html = '';
+  list.forEach(function(s) {
+    var statusCls = s.status === 'running' ? 'running' : 'stopped';
+    var badgeCls = s.status === 'running' ? 'green' : 'gray';
+    var badgeText = s.status === 'running' ? '● 运行中' : '○ 已停止';
+    html += '<div class="strategy-card ' + statusCls + '">';
+    html += '<h4>' + (s.display_name || s.name) + '</h4>';
+    html += '<div class="sc-meta">' + s.symbol + ' · ' + s.timeframe + ' <span class="sc-badge ' + badgeCls + '">' + badgeText + '</span></div>';
+    html += '<div class="sc-params">参数: ' + JSON.stringify(s.params) + '</div>';
+    html += '<div class="sc-stats">';
+    if (s.stats) {
+      html += '<span>信号: <span class="sc-stat-val">' + s.stats.signals_generated + '</span></span>';
+      html += '<span>买入: <span class="sc-stat-val">' + (s.stats.buy_signals || 0) + '</span></span>';
+      html += '<span>卖出: <span class="sc-stat-val">' + (s.stats.sell_signals || 0) + '</span></span>';
+    }
+    if (s.last_signal_time) html += '<span>上次: <span class="sc-stat-val">' + s.last_signal_time.slice(11,19) + '</span></span>';
+    html += '</div>';
+    html += '<div>';
+    if (s.status === 'running') {
+      html += '<button class="sc-btn stop" onclick="stopStrategy(\'' + s.name + '\')">⏹ 停止</button>';
+    } else {
+      html += '<button class="sc-btn start" onclick="startStrategy(\'' + s.name + '\')">▶ 启动</button>';
+    }
+    html += '</div></div>';
+  });
+  document.getElementById('strategies-wrap').innerHTML = html || '<div style="color:var(--text-secondary);text-align:center;padding:24px;width:100%">暂无已注册策略</div>';
+}
+
+async function startStrategy(name) {
+  var data = await apiPost('/api/strategies/' + encodeURIComponent(name) + '/start', {});
+  if (data && data.status === 'ok') {
+    addDataStatus('success', '策略 ' + name + ' 已启动');
+    await loadStrategies();
+  } else {
+    addDataStatus('error', '启动策略 ' + name + ' 失败');
+  }
+}
+
+async function stopStrategy(name) {
+  var data = await apiPost('/api/strategies/' + encodeURIComponent(name) + '/stop', {});
+  if (data && data.status === 'ok') {
+    addDataStatus('success', '策略 ' + name + ' 已停止');
+    await loadStrategies();
+  } else {
+    addDataStatus('error', '停止策略 ' + name + ' 失败');
+  }
+}
+
+async function loadSignals() {
+  if (!backendOnline) return;
+  var data = await apiGet('/api/signals?limit=50&symbol=' + (currentSymbol || 'XAUUSD'));
+  if (!data || data.status !== 'ok') return;
+  var signals = data.data.signals || [];
+  if (signals.length === 0) {
+    document.getElementById('signals-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:24px">暂无策略信号 — 启动策略后自动生成</td></tr>';
+    return;
+  }
+  document.getElementById('signals-tbody').innerHTML = signals.map(function(s) {
+    var sigColor = s.signal === 'BUY' ? 'var(--green)' : (s.signal === 'SELL' ? 'var(--red)' : 'var(--text-secondary)');
+    var sigCn = {BUY:'买入',SELL:'卖出',HOLD:'持有'}[s.signal] || s.signal;
+    return '<tr><td style="font-size:11px">' + (s.created_at||'').slice(11,19) + '</td>'
+      + '<td style="font-weight:600">' + s.symbol + '</td>'
+      + '<td>' + s.timeframe + '</td>'
+      + '<td>' + s.strategy_name + '</td>'
+      + '<td style="color:' + sigColor + ';font-weight:600">' + sigCn + '</td>'
+      + '<td>' + (s.price||0).toFixed(2) + '</td>'
+      + '<td>' + ((s.confidence||0)*100).toFixed(0) + '%</td>'
+      + '<td style="font-size:12px;color:var(--text-secondary)">' + (s.reason||'') + '</td></tr>';
+  }).join('');
+}
+
+async function loadAlerts() {
+  if (!backendOnline) return;
+  var data = await apiGet('/api/alerts?limit=50');
+  if (!data || data.status !== 'ok') return;
+  var alerts = data.data.alerts || [];
+  var html = '';
+  alerts.forEach(function(a) {
+    html += '<div class="alert-item ' + (a.level||'info') + '"><span class="alert-msg">[' + (a.level||'info').toUpperCase() + '] ' + (a.title||'') + ' — ' + (a.message||'').substring(0,120) + '</span><span class="alert-time">' + (a.created_at||'').slice(11,19) + '</span></div>';
+  });
+  document.getElementById('alerts-list').innerHTML = html || '<div class="alert-item info"><span class="alert-msg">暂无告警记录</span><span class="alert-time">---</span></div>';
+}
+
+async function loadOrders() {
+  if (!backendOnline) return;
+  var data = await apiGet('/api/orders?limit=500');
+  if (!data || data.status !== 'ok') return;
+  var orders = data.data.orders || [];
+
+  // 分类：开仓 (BUY/SELL) vs 平仓 (CLOSE_*)
+  var closeOrders = orders.filter(function(o) { return (o.action||'').startsWith('CLOSE_'); });
+  var openOrders  = orders.filter(function(o) { return !(o.action||'').startsWith('CLOSE_'); });
+
+  // 辅助函数：服务器时间(UTC+2) → 北京时间(UTC+8)，+6h
+  function toBeijingTime(serverStr) {
+    if (!serverStr) return '---';
+    // 解析为 UTC+2
+    var d = new Date(serverStr.replace(' ', 'T') + '+02:00');
+    if (isNaN(d.getTime())) return serverStr;
+    // UTC 时间戳 + 8h = 北京时间
+    var bjTs = d.getTime() + 8 * 3600000;
+    var bj = new Date(bjTs);
+    return bj.getUTCFullYear() + '-' +
+      String(bj.getUTCMonth()+1).padStart(2,'0') + '-' +
+      String(bj.getUTCDate()).padStart(2,'0') + ' ' +
+      String(bj.getUTCHours()).padStart(2,'0') + ':' +
+      String(bj.getUTCMinutes()).padStart(2,'0') + ':' +
+      String(bj.getUTCSeconds()).padStart(2,'0');
+  }
+
+  // 平仓表
+  var closeTbody = document.getElementById('orders-close-tbody');
+  if (closeOrders.length === 0) {
+    closeTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:24px">暂无平仓记录</td></tr>';
+  } else {
+    closeTbody.innerHTML = closeOrders.map(function(o) {
+      var ts = o.created_at || '';
+      var utc3Time = ts.slice(0,19);
+      var bjTime = toBeijingTime(ts);
+      var pnl = o.profit;
+      var pnlStr = (pnl !== null && pnl !== undefined) ? ((pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2)) : '---';
+      var pnlColor = (pnl !== null && pnl !== undefined) ? (pnl >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-secondary)';
+      return '<tr><td style="font-size:11px">' + utc3Time + '</td>'
+        + '<td style="font-size:11px;color:#00BFFF">' + bjTime + '</td>'
+        + '<td style="font-weight:600">' + o.symbol + '</td>'
+        + '<td>' + o.action + '</td>'
+        + '<td>' + (o.volume||0).toFixed(2) + '</td>'
+        + '<td style="color:' + pnlColor + ';font-weight:600">' + pnlStr + '</td>'
+        + '<td style="font-size:12px;color:var(--text-secondary)">' + (o.comment||'') + '</td></tr>';
+    }).join('');
+  }
+
+  // 开仓表
+  var openTbody = document.getElementById('orders-open-tbody');
+  if (openOrders.length === 0) {
+    openTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px">暂无开仓记录</td></tr>';
+  } else {
+    openTbody.innerHTML = openOrders.map(function(o) {
+      var ts = o.created_at || '';
+      var utc3Time = ts.slice(0,19);
+      var bjTime = toBeijingTime(ts);
+      return '<tr><td style="font-size:11px">' + utc3Time + '</td>'
+        + '<td style="font-size:11px;color:#00BFFF">' + bjTime + '</td>'
+        + '<td style="font-weight:600">' + o.symbol + '</td>'
+        + '<td>' + o.action + '</td>'
+        + '<td>' + (o.volume||0).toFixed(2) + '</td>'
+        + '<td style="font-size:12px;color:var(--text-secondary)">' + (o.comment||'') + '</td></tr>';
+    }).join('');
+  }
+}
+
+function switchOrdersTab(sub) {
+  document.querySelectorAll('#tab-orders .bottom-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelector('[data-subtab="orders-' + sub + '"]').classList.add('active');
+  document.getElementById('orders-close-panel').style.display = sub === 'close' ? '' : 'none';
+  document.getElementById('orders-open-panel').style.display  = sub === 'open'  ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
 // Init
 // ═══════════════════════════════════════════════════════════
 async function init() {
@@ -1125,13 +1616,19 @@ async function init() {
     // 4. Load ATR stats
     await refreshAtr();
 
-    // 4.5. Fetch initial server time
+    // 4.5. Load strategies, signals, alerts, orders
+    await loadStrategies();
+    await loadSignals();
+    await loadAlerts();
+    await loadOrders();
+
+    // 4.6. Fetch initial server time
     if (mt5Connected) { try { const tick = await apiGet(`/api/tick/${SYMBOL}`); if (tick?.data?.time) updateServerClock(tick.data.time); } catch(e) {} }
 
     // 5. Connect WebSocket
     connectWebSocket();
 
-    // 6. Periodic refresh
+    // 6. Periodic refresh — account & positions every 1s
     setInterval(async () => {
       await checkHealth();
       if (mt5Connected) {
@@ -1139,8 +1636,16 @@ async function init() {
         await loadPositions();
         await loadPendingOrders();
       }
-    }, 5000);
+    }, 1000);
 
+    // Strategy status every 10s
+    setInterval(loadStrategies, 10000);
+    // Signals every 3s
+    setInterval(loadSignals, 3000);
+    // Alerts every 10s
+    setInterval(loadAlerts, 10000);
+    // Orders every 10s
+    setInterval(loadOrders, 10000);
     // ATR refresh every 10 seconds
     setInterval(refreshAtr, 10000);
 
@@ -1242,12 +1747,16 @@ function recalcTrade() {
   var tpPoints = atr5 * tpMult / point;
   document.getElementById('trade-sl-points').textContent = slPoints.toFixed(0) + ' 点';
   document.getElementById('trade-tp-points').textContent = tpPoints.toFixed(0) + ' 点';
-  var equity = 10000;
+
+  // 使用 MT5 真实账户净值
+  var equity = accountEquity || 10000;
   var riskAmount = equity * riskPct / 100;
   document.getElementById('trade-risk-amt').value = riskAmount.toFixed(2);
+
+  // 点值: XAUUSD 1点=1美元/标准手, 外汇 1点=10美元/标准手
   var pipValue = SYMBOL.indexOf('XAU') >= 0 ? 1.0 : 10.0;
   var lots = 0;
-  if (slPoints > 0) { lots = Math.floor(riskAmount / (slPoints * pipValue * 0.01) * 100) / 100; }
+  if (slPoints > 0) { lots = Math.round(riskAmount / (slPoints * pipValue) * 100) / 100; }
   document.getElementById('trade-lots').textContent = lots > 0 ? lots.toFixed(2) + ' 手' : '---';
   document.getElementById('trade-tf-label').textContent = ' · ' + selectedAtrTf;
 }
@@ -1268,15 +1777,143 @@ function toggleTrail() {
   addDataStatus('info', trailArmed ? '追踪止损已开启' : '追踪止损已关闭');
 }
 
-function tradeAction(action) {
+async function closePositionByTicket(ticket) {
+  var pos = positionsCache.find(function(p) { return p.ticket === ticket; });
+  if (!pos) { addDataStatus('error', '持仓未找到 ticket=' + ticket); return; }
+  var digits = (pos.symbol && pos.symbol.indexOf('XAU') >= 0) ? 2 : 5;
+
+  addDataStatus('info', '平仓 #' + ticket + '...');
+  var result = await apiPost('/api/orders/close', { ticket: ticket, deviation: 20 });
+  if (result && result.status === 'ok') {
+    // 累计今日已平仓盈亏
+    todayClosedPnL += (pos.profit || 0);
+    addDataStatus('success', '平仓成功! #' + ticket);
+    await loadPositions();
+    await loadOrders();
+    await loadAccount();
+  } else {
+    addDataStatus('error', '平仓失败: ' + (result?.detail || '未知'));
+  }
+}
+
+async function tradeAction(action) {
   if (action === 'APPLY') { recalcTrade(); addDataStatus('success', '参数已应用'); return; }
-  if (action === 'CLOSE') { addDataStatus('warn', '平仓请求 — 需接入 MT5 order_send 接口（阶段5）'); return; }
+
+  var symbol = currentSymbol;
+  if (!symbol) { addDataStatus('warn', '请选择交易品种'); return; }
+
+  if (action === 'REVERSE') {
+    var mult = parseFloat(document.getElementById('trade-pending-mult').value) || 2.0;
+    // 用面板的 ATR5 × 倍数 计算止损止盈点数
+    var atr5 = getTradeAtr5();
+    var slMult = parseFloat(document.getElementById('trade-sl-mult').value) || 1.5;
+    var tpMult = parseFloat(document.getElementById('trade-tp-mult').value) || 2.0;
+    var point = getSymbolPoint();
+    var slPoints = (atr5 > 0) ? Math.round(atr5 * slMult / point) : 0;
+    var tpPoints = (atr5 > 0) ? Math.round(atr5 * tpMult / point) : 0;
+
+    addDataStatus('info', '反打挂单: 倍数' + mult + 'x SL=' + slPoints + '点 TP=' + tpPoints + '点');
+    var result = await apiPost('/api/pending/reverse', {
+      symbol: symbol, mult: mult,
+      sl_points: slPoints, tp_points: tpPoints
+    });
+    if (result && result.status === 'ok') {
+      var d = result.data;
+      addDataStatus('success', '反打挂单完成! Ticket=' + d.ticket + ' | ' + d.type + ' ' + d.volume + '手 @ ' + (d.price||0).toFixed(2) + ' SL=' + (d.sl||0).toFixed(2) + ' TP=' + (d.tp||0).toFixed(2));
+      await loadPendingOrders();
+    } else {
+      addDataStatus('error', '反打失败: ' + (result?.detail || '未知错误'));
+    }
+    return;
+  }
+
+  if (action === 'DELETE_ORDERS') {
+    console.log('DELETE_ORDERS clicked, symbol=', symbol);
+    addDataStatus('info', '正在删除所有挂单...');
+    var result = await apiPost('/api/pending/delete-all', { symbol: symbol });
+    if (result && result.status === 'ok') {
+      var d = result.data || {};
+      addDataStatus('success', '已删除 ' + (d.deleted || 0) + ' 个挂单');
+      await loadPendingOrders();
+    } else {
+      addDataStatus('error', '删除失败: ' + (result?.detail || ''));
+    }
+    return;
+  }
+
+  if (action === 'CLOSE_BUY' || action === 'CLOSE_SELL') {
+    var targetType = action === 'CLOSE_BUY' ? 'BUY' : 'SELL';
+    var typeCn = targetType === 'BUY' ? '多单' : '空单';
+    var targets = positionsCache.filter(function(p) { return p.type === targetType; });
+    if (targets.length === 0) { addDataStatus('warn', '没有' + typeCn + '可平'); return; }
+    var totalPnL = 0, closed = 0;
+    for (var i = 0; i < targets.length; i++) {
+      var p = targets[i];
+      var result = await apiPost('/api/orders/close', { ticket: p.ticket, deviation: 20 });
+      if (result && result.status === 'ok') { totalPnL += (p.profit || 0); closed++; }
+    }
+    todayClosedPnL += totalPnL;
+    addDataStatus('success', typeCn + '平仓完成: ' + closed + '/' + targets.length + ' 盈亏$' + totalPnL.toFixed(2));
+    await loadPositions(); await loadOrders(); await loadAccount();
+    return;
+  }
+
+  if (action === 'CLOSE') {
+    var ticket = prompt('请输入要平仓的 Ticket 号：');
+    if (!ticket) return;
+    addDataStatus('info', '正在平仓 Ticket=' + ticket + '...');
+    var result = await apiPost('/api/orders/close', { ticket: parseInt(ticket), deviation: 20 });
+    if (result && result.status === 'ok') {
+      addDataStatus('success', '平仓成功! Ticket=' + ticket);
+      await loadPositions(); await loadOrders(); await loadAccount();
+    } else {
+      addDataStatus('error', '平仓失败: ' + (result?.detail || '未知错误'));
+    }
+    return;
+  }
+
+  // BUY / SELL — 直接下单，无确认框
   recalcTrade();
-  var atr5 = getTradeAtr5();
   var slMult = parseFloat(document.getElementById('trade-sl-mult').value) || 1.5;
   var tpMult = parseFloat(document.getElementById('trade-tp-mult').value) || 2.0;
-  var lots = document.getElementById('trade-lots').textContent.replace(' 手', '');
-  addDataStatus('info', action + ' 参数: 手数' + lots + ' SLx' + slMult + ' TPx' + tpMult + ' — 需接入 order 接口');
+  var lots = parseFloat(document.getElementById('trade-lots').textContent.replace(' 手', '')) || 0.01;
+  if (lots <= 0) { addDataStatus('warn', '手数计算错误'); return; }
+
+  var atr5 = getTradeAtr5();
+  var sl = null, tp = null;
+  if (currentPrice && atr5 > 0) {
+    if (action === 'BUY') {
+      sl = parseFloat((currentPrice - atr5 * slMult).toFixed(2));
+      tp = parseFloat((currentPrice + atr5 * tpMult).toFixed(2));
+    } else {
+      sl = parseFloat((currentPrice + atr5 * slMult).toFixed(2));
+      tp = parseFloat((currentPrice - atr5 * tpMult).toFixed(2));
+    }
+  }
+
+  var body = { symbol: symbol, action: action, volume: lots, order_type: 'MARKET', price: 0, deviation: 20, comment: 'manual trade' };
+  if (sl && sl > 0) body.sl = sl;
+  if (tp && tp > 0) body.tp = tp;
+
+  var actionCn = action === 'BUY' ? '买入' : '卖出';
+  addDataStatus('info', '发送订单: ' + actionCn + ' ' + symbol + ' ' + lots + '手 SL=' + (sl||'无') + ' TP=' + (tp||'无'));
+
+  var result = await apiPost('/api/orders/send', body);
+
+  if (!result) {
+    addDataStatus('error', '订单请求失败 — 后端无响应');
+    return;
+  }
+
+  if (result.status === 'ok') {
+    var d = result.data;
+    addDataStatus('success', '✅ 成交! Ticket=' + d.ticket + ' | ' + d.symbol + ' ' + actionCn + ' ' + d.volume + '手 @ ' + (d.price || 0).toFixed(2));
+    await loadPositions();
+    await loadOrders();
+  } else {
+    addDataStatus('error', '失败: ' + (result.detail || ('retcode=' + result.data?.retcode)));
+    await loadOrders();
+  }
 }
 
   init();</script>
